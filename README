@@ -1,0 +1,13 @@
+this is a small qt application for the chumby device.
+
+it reads the sensor data from the flukso device specified and displays 
+the nearly realt-time consumtion values. including moving averages
+(1min, 10min, 1h). 
+there is also a graphical representation (plot) of the sensor values 
+displaying the conumption curve for the last 15 minutes. notice that 
+the flukso only delivers the sensor values for the last 60 seconds, so
+it takes about 15 minutes to  gather values for a 15minutes timeframe..
+
+
+WARNING: there no guarantee whatsorever for this application since it's 
+a work-in-progress project. 
