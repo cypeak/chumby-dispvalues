@@ -35,36 +35,36 @@ DisplayPage::DisplayPage ( QWidget* parent ) : QWidget ( parent )
 
 	QGridLayout* avgLayout = new QGridLayout();
 	QLabel* avgLabel1 = new QLabel ( tr ( "avg.(1m)" ) );
-	QLabel* avgLabel2 = new QLabel ( tr ( "avg.(10m)" ) );
-	QLabel* avgLabel3 = new QLabel ( tr ( "avg.(1h)" ) );
+	QLabel* avgLabel2 = new QLabel ( tr ( "avg.(15m)" ) );
+	//QLabel* avgLabel3 = new QLabel ( tr ( "avg.(1h)" ) );
 	avgLabel1->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
 	avgLabel2->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
-	avgLabel3->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
+	//avgLabel3->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
 	avgLabel1->setAlignment ( Qt::AlignRight );
 	avgLabel2->setAlignment ( Qt::AlignRight );
-	avgLabel3->setAlignment ( Qt::AlignRight );
+	//avgLabel3->setAlignment ( Qt::AlignRight );
 	avgLabel1->setMaximumSize ( 150, 20 );
 	avgLabel2->setMaximumSize ( 150, 20 );
-	avgLabel3->setMaximumSize ( 150, 20 );
+	//avgLabel3->setMaximumSize ( 150, 20 );
 	avgval1 = new QLCDNumber ();
 	avgval2 = new QLCDNumber ();
-	avgval3 = new QLCDNumber ();
+	//avgval3 = new QLCDNumber ();
 	avgval1->display ( "---" );
 	avgval2->display ( "---" );
-	avgval3->display ( "---" );
+	//avgval3->display ( "---" );
 	avgval1->setSegmentStyle ( QLCDNumber::Filled );
 	avgval1->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
 	avgval2->setSegmentStyle ( QLCDNumber::Filled );
 	avgval2->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
-	avgval3->setSegmentStyle ( QLCDNumber::Filled );
-	avgval3->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
+	//avgval3->setSegmentStyle ( QLCDNumber::Filled );
+	//avgval3->setFrameStyle ( QFrame::StyledPanel | QFrame::Plain );
 
 	avgLayout->addWidget ( avgLabel1, 0, 0, 1, 1 );
 	avgLayout->addWidget ( avgLabel2, 0, 1, 1, 1 );
-	avgLayout->addWidget ( avgLabel3, 0, 2, 1, 1 );
+	//avgLayout->addWidget ( avgLabel3, 0, 2, 1, 1 );
 	avgLayout->addWidget ( avgval1, 1, 0, 1, 1 );
 	avgLayout->addWidget ( avgval2, 1, 1, 1, 1 );
-	avgLayout->addWidget ( avgval3, 1, 2, 1, 1 );
+	//avgLayout->addWidget ( avgval3, 1, 2, 1, 1 );
 	avgLayout->setSpacing ( 1 );
 
 	QVBoxLayout* layout = new QVBoxLayout ( this );
@@ -73,6 +73,9 @@ DisplayPage::DisplayPage ( QWidget* parent ) : QWidget ( parent )
 	layout->addLayout ( avgLayout );
 	layout->setContentsMargins ( 0, 0, 0, 0 );
 	layout->setSpacing ( 4 );
+
+	valueiter = 0;
+	lastval = 0;
 }
 
 
@@ -95,7 +98,7 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 
 	statusLabel = new QLabel ( tr ( "Status: ----" ) );
 	debugLabel = new QLabel ( tr ( "Mapsize: ----" ) );
-	lastValues = new QTextEdit();
+	//lastValues = new QTextEdit();
 
 	QLabel* info = new QLabel ( tr ( "Settings / Debug " ) );
 	QVBoxLayout* layout = new QVBoxLayout ( this );
@@ -106,7 +109,8 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 	layout->addStretch();
 	layout->addWidget ( statusLabel );
 	layout->addWidget ( debugLabel );
-	layout->addWidget ( lastValues );
+	//layout->addWidget ( lastValues );
+	layout->addStretch();
 	layout->setContentsMargins ( 0, 0, 0, 0 );
 	layout->setSpacing ( 5 );
 }
@@ -115,14 +119,14 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 PlotPage::PlotPage ( QWidget* parent ) : QWidget ( parent )
 {
 	QVBoxLayout* layout = new QVBoxLayout ( this );
-	//Converter* con = new converterDefault;
 	plotter = new Plotter ( this );
+	
 	TimeConverter_s* tc = new TimeConverter_s(); //create a new converter object...
 	plotter->setConverter ( tc ); //override the default "do-nothing"-converter
+	
 	layout->addWidget ( plotter );
 	layout->setContentsMargins ( 0, 0, 0, 0 );
 	layout->setSpacing ( 5 );
-
 }
 
 
@@ -162,23 +166,21 @@ Display::Display() : QDialog()
 	connect ( quitButton, SIGNAL ( clicked() ), this, SLOT ( close() ) );
 	connect ( urlPg->urlLineEdit, SIGNAL ( textChanged ( QString ) ), this, SLOT ( enablestartButton() ) );
 
-	curtimestamp = 0;
-	vinterval = 2;
-	fetchinterval = 6;
+	//curtimestamp  = 0;
+	valinterval   = 2;
+	fetchinterval = 8;
 	dlcounter = 0;
 
 	tfetch = new QTimer();
 	tshow = new QTimer();
-	//tavg = new QTimer();
 
 	tfetch->setInterval ( 1000 * fetchinterval );
-	tshow->setInterval ( 1000 * vinterval );
-	//tavg->setInterval ( 10000 );
+	tshow->setInterval ( 1000 * valinterval );
 
-	map = new QMap<QString, quint32>();
-	connect ( tshow, SIGNAL ( timeout() ), this, SLOT ( showCurrentVal() ) );
+	map = new QMap<uint, uint>();
+
+	connect ( tshow, SIGNAL ( timeout() ), this, SLOT ( showCurrentVal_alt() ) );
 	connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getSensorData() ) );
-	//connect ( tavg, SIGNAL ( timeout() ), this, SLOT ( showAvg() ) );
 
 	qDebug() << "created..";
 }
@@ -251,7 +253,7 @@ void Display::startDisp()
 		tshow->stop();
 		//tavg->stop();
 		qDebug() << "timer stoped.";
-		curtimestamp = 0;
+		//curtimestamp = 0;
 		dlcounter = 0;
 		map->clear();
 		startButton->setText ( tr ( "Start" ) );
@@ -291,29 +293,28 @@ void Display::plotData ( Plotter* plotter )
 	int plotlen = 900;
 
 	if ( plotlen > 240 ) {
-		plotPg->plotter->setConverter ( new TimeConverter_m );
+		TimeConverter_m* tc = new TimeConverter_m();
+		plotPg->plotter->setConverter ( tc );
 	}
 
 	uint minx = 0;
-	uint maxx = ( map->end() - 1 ).key().toUInt();
+	uint maxx = ( map->end() - 1 ).key();
 	uint miny = ( map->end() - 1 ).value();
 	uint maxy = 0;
 
 	int msize = map->size();
-	minx = ( ( map->begin() ).key().toUInt() ) - ( plotlen - msize );
+	minx = ( ( map->begin() ).key() ) - ( plotlen - msize );
 	int goback = ( msize < plotlen ) ? msize : plotlen ;
 
-	//qDebug() << "\n-------------";
 	QVector<QPointD> plval;
 
-	QMap<QString, quint32>::const_iterator i;
+	QMap<uint, uint>::const_iterator i;
 
 	for ( i = map->constEnd() - goback ; i != map->constEnd(); ++i ) {
 
-		uint keyval = i.key().toUInt();
 		uint val = i.value();
 
-		plval.append ( QPointD ( keyval, val ) );
+		plval.append ( QPointD ( i.key(), val ) );
 		//qDebug() << "key: " << i.key() <<  " keyval: " <<  QString::number ( keyval , 'f', 1 ) << "val: " << val;
 
 		if ( val > maxy ) {
@@ -344,6 +345,7 @@ void Display::plotData ( Plotter* plotter )
 
 	PlotSettings* pset = new PlotSettings (  minx, miny, maxx, maxy, 4, 5 );
 	plotter->setPlotSettings ( *pset );
+	//plotter->setPlotSettings ( *(new PlotSettings (  minx, miny, maxx, maxy, 4, 5 )) );
 	plotter->setCurveData ( 1, plval );
 }
 
@@ -396,44 +398,44 @@ void Display::httpReadyRead()
 		qFatal ( "An error occurred during parsing" );
 	} else {
 		if ( json.isEmpty() ) {
-			qDebug() << "json is empty!";
-			//qDebug() << "json size: " << json.size();
+			qDebug() << "json data is empty!";
 		}
 
 		foreach ( QVariant data, json ) {
 			if ( data.toList().value ( 1 ).toString() != "nan" ) {
-				map->insert ( data.toList().value ( 0 ).toString(), data.toList().value ( 1 ).toUInt() );
+				map->insert ( data.toList().value ( 0 ).toUInt(), data.toList().value ( 1 ).toUInt() );
 			} else {
-				map->insert ( data.toList().value ( 0 ).toString(), 0 );
+				map->insert ( data.toList().value ( 0 ).toUInt(), 0 );
 				qDebug() << "zero value inserted! - map size was: " << map->size();
 			}
 			//qDebug() << data.toList().value(1).toString();
 		}
 
-		if ( curtimestamp == 0 ) {
-			curtimestamp = map->constBegin().key().toUInt() + 52;
-			qDebug() << "first stamp - now: " << curtimestamp;
-			qDebug() << "first stamp - last: " << ( map->constEnd() - 1 ).key().toUInt();
-		}
+		//if ( curtimestamp == 0 ) {
+			//curtimestamp = map->constBegin().key() + 50;
+			//qDebug() << "first stamp - now: " << curtimestamp;
+			//qDebug() << "first stamp - last: " << ( map->constEnd() - 1 ).key();
+		//}
 
-		if ( map->size() > 4600 ) {
-			QMap<QString, quint32>::iterator i = map->begin();
-			while ( i != map->end() - 3601  ) {
+		if ( map->size() > 2100 ) {
+			QMap<uint, uint>::iterator i = map->begin();
+			while ( i != map->end() - 1801  ) {
 				i = map->erase ( i );
 			}
 			qDebug() << "new map size: " << map->size();
 		}
 
-		QString lval;
-		QMap<QString, quint32>::const_iterator i;
-		for ( i = map->constEnd() - 1 ; i != map->constEnd() - 6; --i ) {
-			lval.append ( "k: " + i.key() + " - v: " + QString::number ( i.value() ) + "\n" );
-		}
+		//QString lval;
+		//QMap<uint, uint>::const_iterator i;
+		//for ( i = map->constEnd() - 1 ; i != map->constEnd() - 6; --i ) {
+			//lval.append ( "k: " + QString::number ( i.key() ) + " - v: " + QString::number ( i.value() ) + "\n" );
+		//}
+		//urlPg->lastValues->setPlainText ( lval );
 
-		urlPg->lastValues->setPlainText ( lval );
+		urlPg->debugLabel->setText ( tr ( "Map size is: %1" ).arg ( map->size() ) );
 
-		//qDebug() << "mapsize: " << map->size();
-		urlPg->debugLabel->setText ( tr ( "map size is: %1" ).arg ( map->size() ) );
+		// when there is new data available in the map (= when parsed json data)
+		// the moving averages and the plot curves should be updated...
 		showAvg();
 		plotData ( plotPg->plotter );
 	}
@@ -441,21 +443,44 @@ void Display::httpReadyRead()
 }
 
 
-void Display::showCurrentVal()
-{
-	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( curtimestamp ) * 1000 );
-	QString ts = QString::number ( curtimestamp );
-	displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
+//void Display::showCurrentVal()
+//{
+	//QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( curtimestamp ) * 1000 );
+	//displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
 
-	if ( map->contains ( ts ) ) {
-		QString val = QString::number ( map->value ( ts ) );
-		displayPg->sensorval->display ( val );
+	//if ( map->contains ( curtimestamp ) ) {
+		//QString val = QString::number ( map->value ( curtimestamp ) );
+		//displayPg->sensorval->display ( val );
+	//} else {
+		//qDebug() << "no value in map!";
+		//displayPg->sensorval->display ( "----" );
+	//}
+
+	//curtimestamp += valinterval;
+//}
+
+void Display::showCurrentVal_alt()
+{
+	//qDebug() << "lastval: " << displayPg->lastval;
+	//qDebug() << "mapend:" << ( map->constEnd() - 1 ).key();
+
+	if ( ! ( displayPg->lastval == ( map->constEnd() - 1 ).key() ) ) {
+		displayPg->lastval = ( map->constEnd() - 1 ).key();
+		displayPg->valueiter = 0;
+		//qDebug() << "--------------";
 	} else {
-		qDebug() << "no value in map!";
-		displayPg->sensorval->display ( "----" );
+		displayPg->valueiter = displayPg->valueiter + valinterval;
+		//qDebug() << "valiter: " << displayPg->valueiter;
 	}
 
-	curtimestamp += vinterval;
+	uint show = ( map->constEnd() - 1 - ( int ) fetchinterval + ( int ) displayPg->valueiter ).key();
+
+	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( show ) * 1000 );
+	displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
+	displayPg->sensorval->display (  QString::number ( map->value ( show ) ) );
+	
+	//qDebug() << "show:" << show;
+	//qDebug() << "mapvals: "  <<  map->value ( show ) << "\n";
 }
 
 
@@ -463,22 +488,22 @@ void Display::showAvg()
 {
 	uint avg1 = 0;
 	uint avg2 = 0;
-	uint avg3 = 0;
+	//uint avg3 = 0;
 	//int c = 0;
 	int size = map->size();
-	uint a1end = 0;
-	uint a2end = 0;
-	uint a3end = 0;
+	int a1end = 0;
+	int a2end = 0;
+	//int a3end = 0;
 
 	if ( map->isEmpty() ) {
 		return;
 	}
 
-	QMap<QString, quint32>::const_iterator i;
+	QMap<uint, uint>::const_iterator i;
 
 	( size < 60 ) ? a1end = size : a1end = 60; //1min
-	( size < 600 ) ? a2end = size : a2end = 600; // 10min = 600
-	( size < 3600 ) ? a3end = size : a3end = 3600; // 1h = 3600
+	( size < 900 ) ? a2end = size : a2end = 900; // 10min = 600
+	//( size < 3600 ) ? a3end = size : a3end = 3600; // 1h = 3600
 
 	for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a1end ); --i ) {
 		avg1 += i.value(); //hier absichern falls values nicht geliefert wurden...
@@ -501,14 +526,15 @@ void Display::showAvg()
 	displayPg->avgval2->display ( ( int ) avg2 );
 	//qDebug() << "avg2: " << avg2;
 
-	for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a3end ); --i ) {
-		avg3 += i.value();
+	//for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a3end ); --i ) {
+		//avg3 += i.value();
 		//qDebug() << "k:" << i.key() << "v: " << i.value() << "sum: " << avg2;
 		//c += 1;
 		//qDebug() << "c: " << c;
-	}
-	avg3 = avg3 / a3end;
-	displayPg->avgval3->display ( ( int ) avg3 );
+	//}
+	
+	//avg3 = avg3 / a3end;
+	//displayPg->avgval3->display ( ( int ) avg3 );
 	//qDebug() << "avg3: " << avg3;
 }
 

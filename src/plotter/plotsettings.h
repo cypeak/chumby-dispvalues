@@ -9,6 +9,7 @@ class PlotSettings
 	public:
 		PlotSettings();
 		PlotSettings ( double minx, double miny, double maxx, double maxy, int ticksx , int ticksy );
+		//~PlotSettings();
 
 		//void scroll ( int dx, int dy );
 		double spanX() const { return maxX - minX; }

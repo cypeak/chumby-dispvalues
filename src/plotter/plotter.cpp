@@ -26,9 +26,8 @@ Plotter::Plotter ( QWidget* parent ) : QWidget ( parent )
 
 	conv = new ConverterDefault();
 	PlotSettings* ps = new PlotSettings();
-	//setPlotSettings ( PlotSettings() );
 	setPlotSettings ( *ps );
-	//converter = &convertDefault;
+	//setPlotSettings ( *(new PlotSettings()) );
 }
 
 void Plotter::setPlotSettings ( PlotSettings& settings ) //modify parameters
@@ -68,7 +67,6 @@ void Plotter::zoomOut()
 
 void Plotter::setCurveData ( int id, const QVector<QPointD>& data )
 {
-	//curveMap[id] = data;
 	curveMap.insert ( id, data ); //better way to insert data in map
 	refreshPixmap();
 }
@@ -136,9 +134,7 @@ void Plotter::refreshPixmap()
 	QPainter painter ( &pixmap );
 	painter.initFrom ( this );
 	drawGrid ( &painter );
-	//qDebug() << "painted grid..";
 	drawCurves ( &painter );
-	//qDebug() << "painted curves";
 	update();
 }
 
@@ -189,9 +185,6 @@ void Plotter::drawCurves ( QPainter* painter )
 
 	QRect rect ( MarginL, MarginT, width() - MarginL - MarginR, height() - MarginT - MarginB );
 	if ( !rect.isValid() ) {
-		qDebug() << "invalid plotter rect!";
-		qDebug() << "T:" << rect.top() << " B: " << rect.bottom();
-		qDebug() << "L:" << rect.left() << " R: " << rect.right();
 		return;
 	}
 
@@ -203,35 +196,29 @@ void Plotter::drawCurves ( QPainter* painter )
 		QVector<QPointD> data = i.value();
 		QPolygonF polyline ( data.count() );
 
-		//qDebug() << "draw min X: " << settings.minX << "draw max X: " << settings.maxX;
-		//qDebug() << "draw min X: " << QVariant ( settings.minX ).toUInt() << "draw max X: " << QVariant ( settings.maxX ).toUInt();
-		//qDebug() << "draw min Y: " << settings.minY << "draw max Y: " << settings.maxY;
-		//qDebug << "datatype: " << (settings.minX).type();
-
 		for ( int j = 0; j < data.count(); ++j ) {
-			//qDebug() << "n data X: " <<  QString::number ( data[j].x() , 'f', 0 )  << "n data Y: " << QString::number ( data[j].y() , 'f', 0 );
-			//qDebug() << "m data X: " <<  QString::number ( QVariant ( data[j].x() ).toUInt() , 'f', 0 )  << "m data Y: " << QString::number ( QVariant ( data[j].y() ).toUInt() , 'f', 0 );
+			
 			double dx = data[j].x() - settings.minX;
 			double dy = data[j].y() - settings.minY;
-			//qDebug() << "dx: " << dx << " dy: " << dy;
 			double x = rect.left() + ( dx * ( rect.width() - 1 ) / settings.spanX() );
 			double y = rect.bottom() - ( dy * ( rect.height() - 1 ) / settings.spanY() );
-			//qDebug() << "spanx: " << settings.spanX() << " spany: " << settings.spanY();
-			//qDebug() << "x: " << x << " y: " << y << "\n";
+			
 			polyline[j] = QPointF ( x, y );
 		}
 
 		painter->setPen ( colorForIds[uint ( id ) % 6] );
 		painter->drawPolyline ( polyline );
-		//qDebug() << "plotted!";
+
 	}
 
 }
+
 
 void Plotter::setConverter ( Converter* converter )
 {
 	conv = converter;
 }
+
 
 QString ConverterDefault::convert ( double value )
 {

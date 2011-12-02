@@ -18,8 +18,8 @@
 #include <QtNetwork>
 #include <QUrl>
 //#include <QFile>
-
 #include <QDebug>
+
 #include "json/json.h"
 #include "plotter/converter.h"
 #include "plotter/plotter.h"
@@ -39,7 +39,9 @@ class DisplayPage : public QWidget
 		QLCDNumber* sensorval;
 		QLCDNumber* avgval1;
 		QLCDNumber* avgval2;
-		QLCDNumber* avgval3;
+		//QLCDNumber* avgval3;
+		uint valueiter;
+		uint lastval;
 
 };
 //-----------------
@@ -52,7 +54,7 @@ class URLPage : public QWidget
 		
 		QLabel* statusLabel;
 		QLabel* debugLabel;
-		QTextEdit* lastValues;
+		//QTextEdit* lastValues;
 
 };
 
@@ -83,7 +85,8 @@ class Display : public QDialog
 		void httpReadyRead();
 		void sensorErr();
 		void startDisp();
-		void showCurrentVal();
+		//void showCurrentVal();
+		void showCurrentVal_alt();
 		void showAvg();
 		void plotData ( Plotter* plotter );
 
@@ -104,11 +107,12 @@ class Display : public QDialog
 		//QFile* file;
 		//bool httpRequestAborted;
 
-		uint curtimestamp;
-		uint vinterval;
+		//uint curtimestamp;
+		uint valinterval;
 		uint fetchinterval;
 		uint dlcounter;
-		QMap<QString, quint32>* map;
+		
+		QMap<uint, uint>* map;
 
 		QTimer* tfetch;
 		QTimer* tshow;

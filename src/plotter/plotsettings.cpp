@@ -1,5 +1,6 @@
 #include "plotsettings.h"
 #include <cmath>
+#include <QDebug>
 
 PlotSettings::PlotSettings()
 {
@@ -23,6 +24,10 @@ PlotSettings::PlotSettings ( double minx, double miny, double maxx, double maxy,
 	numYTicks = ticksy;
 
 }
+
+//PlotSettings::~PlotSettings() {
+//	qDebug() << "plot settings object destroyed!";
+//}
 
 void PlotSettings::adjust()
 {
