@@ -85,16 +85,57 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 	//urlLineEdit = new QLineEdit ( "http://131.246.191.27:8080/sensor/032ae0de09d3133583fb52da37a5a276?unit=watt&interval=minute&version=1.0" );
 	urlLineEdit = new QLineEdit ( "131.246.191.27:8080" );
 
-	QLabel* sensorLabel = new QLabel ( tr ( "Sensor:" ) );
-	sensorLineEdit = new QLineEdit ( "032ae0de09d3133583fb52da37a5a276" );
+	// "hardcoded" for the time being...will certainly be changed!
+	QLabel* sensorLabel = new QLabel ( tr ( "Sensors:" ) );
+
+	sensorLineEdit1 = new QLineEdit ( "032ae0de09d3133583fb52da37a5a276" );
+	sensorLineEdit2 = new QLineEdit ( "7db5114835cbce460409c6d719d0742e" );
+	sensorLineEdit3 = new QLineEdit ( "c5bcf355c8c257763d9c33029da9b5d8" );
+
+	sen1 = new QPushButton ( "Enable" );
+	sen2 = new QPushButton ( "Enable" );
+	sen3 = new QPushButton ( "Enable" );
+
+	sen1->setMaximumWidth ( 54 );
+	sen2->setMaximumWidth ( 54 );
+	sen3->setMaximumWidth ( 54 );
+
+	sen1->setCheckable ( true );
+	sen2->setCheckable ( true );
+	sen3->setCheckable ( true );
+	sen1->setChecked ( true );
+	sen1->setText ( "Disable" );
+	sen2->setChecked ( false );
+	sen3->setChecked ( false );
+
+	sen1en = true;
+	sen2en = false;
+	sen3en = false;
 
 	QHBoxLayout* topLayout = new QHBoxLayout;
 	topLayout->addWidget ( urlLabel );
 	topLayout->addWidget ( urlLineEdit );
 
-	QHBoxLayout* topLayout2 = new QHBoxLayout;
+	QHBoxLayout* topLayout_s1 = new QHBoxLayout;
+	topLayout_s1->addWidget ( sensorLineEdit1 );
+	topLayout_s1->addWidget ( sen1 );
+
+	QHBoxLayout* topLayout_s2 = new QHBoxLayout;
+	topLayout_s2->addWidget ( sensorLineEdit2 );
+	topLayout_s2->addWidget ( sen2 );
+
+	QHBoxLayout* topLayout_s3 = new QHBoxLayout;
+	topLayout_s3->addWidget ( sensorLineEdit3 );
+	topLayout_s3->addWidget ( sen3 );
+
+	QVBoxLayout* topLayout2 = new QVBoxLayout;
 	topLayout2->addWidget ( sensorLabel );
-	topLayout2->addWidget ( sensorLineEdit );
+	topLayout2->addLayout ( topLayout_s1 );
+	topLayout2->addLayout ( topLayout_s2 );
+	topLayout2->addLayout ( topLayout_s3 );
+
+	//topLayout2->addWidget ( sensorLineEdit2 );
+	//topLayout2->addWidget ( sensorLineEdit3 );
 
 	statusLabel = new QLabel ( tr ( "Status: ----" ) );
 	debugLabel = new QLabel ( tr ( "Mapsize: ----" ) );
@@ -106,24 +147,35 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 	layout->addStretch();
 	layout->addLayout ( topLayout );
 	layout->addLayout ( topLayout2 );
-	layout->addStretch();
+	//layout->addStretch();
 	layout->addWidget ( statusLabel );
 	layout->addWidget ( debugLabel );
 	//layout->addWidget ( lastValues );
 	layout->addStretch();
 	layout->setContentsMargins ( 0, 0, 0, 0 );
 	layout->setSpacing ( 5 );
+
+	connect ( sen1, SIGNAL ( toggled ( bool ) ), this, SLOT ( buttonToggled ( bool ) ) );
+	connect ( sen2, SIGNAL ( toggled ( bool ) ), this, SLOT ( buttonToggled ( bool ) ) );
+	connect ( sen3, SIGNAL ( toggled ( bool ) ), this, SLOT ( buttonToggled ( bool ) ) );
 }
+
+void URLPage::buttonToggled ( bool checked )
+{
+	QPushButton* button = ( QPushButton* ) sender();
+	button->setText ( ( checked ) ? QString ( "Disable" ) : QString ( "Enable" ) );
+}
+
 
 
 PlotPage::PlotPage ( QWidget* parent ) : QWidget ( parent )
 {
 	QVBoxLayout* layout = new QVBoxLayout ( this );
 	plotter = new Plotter ( this );
-	
+
 	TimeConverter_s* tc = new TimeConverter_s(); //create a new converter object...
 	plotter->setConverter ( tc ); //override the default "do-nothing"-converter
-	
+
 	layout->addWidget ( plotter );
 	layout->setContentsMargins ( 0, 0, 0, 0 );
 	layout->setSpacing ( 5 );
@@ -170,6 +222,7 @@ Display::Display() : QDialog()
 	valinterval   = 2;
 	fetchinterval = 8;
 	dlcounter = 0;
+	currentsensor = 0;
 
 	tfetch = new QTimer();
 	tshow = new QTimer();
@@ -178,9 +231,21 @@ Display::Display() : QDialog()
 	tshow->setInterval ( 1000 * valinterval );
 
 	map = new QMap<uint, uint>();
+	map1 = new QMap<uint, uint>();
+	map2 = new QMap<uint, uint>();
+	map3 = new QMap<uint, uint>();
 
 	connect ( tshow, SIGNAL ( timeout() ), this, SLOT ( showCurrentVal_alt() ) );
-	connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getSensorData() ) );
+	//connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getSensorData() ) );
+	connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getAllSensors() ) );
+
+	finishedMapper = new QSignalMapper ( this );
+	readyreadMapper = new QSignalMapper ( this );
+	errMapper = new QSignalMapper ( this );
+
+	connect ( finishedMapper, SIGNAL ( mapped ( int ) ), this, SLOT ( httpFinished ( int ) ) );
+	connect ( readyreadMapper, SIGNAL ( mapped ( int ) ), this, SLOT ( httpReadyRead ( int ) ) );
+	connect ( errMapper, SIGNAL ( mapped ( int ) ), this, SLOT ( sensorErr ( int ) ) );
 
 	qDebug() << "created..";
 }
@@ -260,7 +325,8 @@ void Display::startDisp()
 		urlPg->statusLabel->setText ( tr ( "Stopped" ) );
 	} else {
 		qDebug() << "starting...";
-		getSensorData();
+		//getSensorData();
+		getAllSensors();
 		tfetch->start();
 		tshow->start();
 		//tavg->start();
@@ -270,21 +336,143 @@ void Display::startDisp()
 
 }
 
+void Display::getAllSensors()
+{
+	//int nrsensors = 0;
+	QString sensortxt = "/sensor/%1?unit=watt&interval=minute&version=1.0";
+
+	if ( !urlPg->sensorLineEdit1->text().isEmpty() && urlPg->sen1->isChecked() ) {
+		qDebug() << "s1:" << sensortxt.arg ( urlPg->sensorLineEdit1->text() );
+
+		reply = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit1->text() ) ) ) );
+
+		finishedMapper->setMapping ( reply, 1 );
+		readyreadMapper->setMapping ( reply, 1 );
+		errMapper->setMapping ( reply, 1 );
+		qDebug() << "s1: mapped..";
+		connect ( reply, SIGNAL ( finished() ), finishedMapper, SLOT ( map() ) );
+		connect ( reply, SIGNAL ( readyRead() ), readyreadMapper, SLOT ( map() ) );
+		connect ( reply, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
+		qDebug() << "s1: connected..";
+	}
+
+	if ( !urlPg->sensorLineEdit2->text().isEmpty() && urlPg->sen2->isChecked() ) {
+		qDebug() << "s2:" << sensortxt.arg ( urlPg->sensorLineEdit2->text() );
+		//reply2 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit2->text()) ) ) );
+	}
+
+	if ( !urlPg->sensorLineEdit3->text().isEmpty() && urlPg->sen3->isChecked() ) {
+		qDebug() << "s3:" << sensortxt.arg ( urlPg->sensorLineEdit3->text() );
+		//reply3 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit3->text()) ) ) );
+	}
+
+	//connect ( reply, SIGNAL ( finished() ), this, SLOT ( httpFinished() ) );
+	//connect ( reply, SIGNAL ( readyRead() ), this, SLOT ( httpReadyRead() ) );
+	//connect ( reply, SIGNAL ( error ( QNetworkReply::NetworkError ) ), this, SLOT ( sensorErr() ) );
+
+}
+
 
 void Display::getSensorData()
 {
-	QString sensortxt = "/sensor/" + urlPg->sensorLineEdit->text() + "?unit=watt&interval=minute&version=1.0";
+	QString sensortxt = "/sensor/" + urlPg->sensorLineEdit1->text() + "?unit=watt&interval=minute&version=1.0";
 	url.setUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt );
-	//qDebug() << "url: " << url.toString();
-
-	//httpRequestAborted = false;
 	startRequest ( url );
+	getAllSensors();
 }
 
-QString Display::valConvert ( double value )
+
+void Display::startRequest ( QUrl url )
 {
-	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( qint64 ( value ) * 1000 );
-	return dtime.toString ( "hh:mm:ss" );
+	reply = qnam.get ( QNetworkRequest ( url ) );
+	urlPg->statusLabel->setText ( tr ( "Downloading sensor data..." ) );
+	connect ( reply, SIGNAL ( finished() ), this, SLOT ( httpFinished() ) );
+	connect ( reply, SIGNAL ( readyRead() ), this, SLOT ( httpReadyRead() ) );
+	connect ( reply, SIGNAL ( error ( QNetworkReply::NetworkError ) ), this, SLOT ( sensorErr() ) );
+}
+
+
+void Display::httpFinished ( int in )
+{
+
+	QVariant redirectionTarget = reply->attribute ( QNetworkRequest::RedirectionTargetAttribute );
+
+	if ( reply->error() ) {
+		qDebug() << QString ( tr ( "Sensordata Download failed: %1." ).arg ( reply->errorString() ) );
+	} else if ( !redirectionTarget.isNull() ) {
+		QUrl newUrl = url.resolved ( redirectionTarget.toUrl() );
+		url = newUrl;
+		reply->deleteLater();
+		startRequest ( url );
+		return;
+	} else {
+		dlcounter += 1;
+		urlPg->statusLabel->setText ( tr ( "Sensordata downloaded! (count: %1)" ).arg ( dlcounter ) );
+	}
+
+	reply->deleteLater();
+	reply = 0;
+	currentsensor++;
+
+}
+
+
+// this slot is only triggered when QNetworkReply has new data available,
+// not when the finished() signal is emmited - this way we use less RAM
+void Display::httpReadyRead ( int in )
+{
+	QByteArray result;
+	result = reply->readAll();
+
+	bool ok;
+	QVariantList json = QtJson::Json::parse ( QString ( result ), ok ).toList();
+
+	if ( !ok ) {
+		qFatal ( "An error occurred during parsing" );
+	} else {
+		if ( json.isEmpty() ) {
+			qDebug() << "json data is empty!";
+		}
+
+		foreach ( QVariant data, json ) {
+			if ( data.toList().value ( 1 ).toString() != "nan" ) {
+				map->insert ( data.toList().value ( 0 ).toUInt(), data.toList().value ( 1 ).toUInt() );
+			} else {
+				map->insert ( data.toList().value ( 0 ).toUInt(), 0 );
+				qDebug() << "zero value inserted! - map size was: " << map->size();
+			}
+			//qDebug() << data.toList().value(1).toString();
+		}
+
+		//if ( curtimestamp == 0 ) {
+		//curtimestamp = map->constBegin().key() + 50;
+		//qDebug() << "first stamp - now: " << curtimestamp;
+		//qDebug() << "first stamp - last: " << ( map->constEnd() - 1 ).key();
+		//}
+
+		if ( map->size() > 2100 ) {
+			QMap<uint, uint>::iterator i = map->begin();
+			while ( i != map->end() - 1801  ) {
+				i = map->erase ( i );
+			}
+			qDebug() << "new map size: " << map->size();
+		}
+
+		//QString lval;
+		//QMap<uint, uint>::const_iterator i;
+		//for ( i = map->constEnd() - 1 ; i != map->constEnd() - 6; --i ) {
+		//lval.append ( "k: " + QString::number ( i.key() ) + " - v: " + QString::number ( i.value() ) + "\n" );
+		//}
+		//urlPg->lastValues->setPlainText ( lval );
+
+		urlPg->debugLabel->setText ( tr ( "Map size is: %1" ).arg ( map->size() ) );
+
+		// when there is new data available in the map (= when parsed json data)
+		// the moving averages and the plot curves should be updated...
+		showAvg();
+		plotData ( plotPg->plotter );
+	}
+
 }
 
 
@@ -350,113 +538,20 @@ void Display::plotData ( Plotter* plotter )
 }
 
 
-void Display::startRequest ( QUrl url )
-{
-	reply = qnam.get ( QNetworkRequest ( url ) );
-	urlPg->statusLabel->setText ( tr ( "Downloading sensor data..." ) );
-	connect ( reply, SIGNAL ( finished() ), this, SLOT ( httpFinished() ) );
-	connect ( reply, SIGNAL ( readyRead() ), this, SLOT ( httpReadyRead() ) );
-	connect ( reply, SIGNAL ( error ( QNetworkReply::NetworkError ) ), this, SLOT ( sensorErr() ) );
-	//connect ( reply, SIGNAL ( downloadProgress ( qint64, qint64 ) ),this, SLOT ( updateDataReadProgress ( qint64, qint64 ) ) );
-}
-
-
-void Display::httpFinished()
-{
-
-	QVariant redirectionTarget = reply->attribute ( QNetworkRequest::RedirectionTargetAttribute );
-
-	if ( reply->error() ) {
-		qDebug() << QString ( tr ( "Sensordata Download failed: %1." ).arg ( reply->errorString() ) );
-	} else if ( !redirectionTarget.isNull() ) {
-		QUrl newUrl = url.resolved ( redirectionTarget.toUrl() );
-		url = newUrl;
-		reply->deleteLater();
-		startRequest ( url );
-		return;
-	} else {
-		dlcounter += 1;
-		urlPg->statusLabel->setText ( tr ( "Sensordata downloaded! (count: %1)" ).arg ( dlcounter ) );
-	}
-
-	reply->deleteLater();
-	reply = 0;
-}
-
-
-// this slot is only triggered when QNetworkReply has new data available,
-// not when the finished() signal is emmited - this way we use less RAM
-void Display::httpReadyRead()
-{
-	QByteArray result;
-	result = reply->readAll();
-
-	bool ok;
-	QVariantList json = QtJson::Json::parse ( QString ( result ), ok ).toList();
-
-	if ( !ok ) {
-		qFatal ( "An error occurred during parsing" );
-	} else {
-		if ( json.isEmpty() ) {
-			qDebug() << "json data is empty!";
-		}
-
-		foreach ( QVariant data, json ) {
-			if ( data.toList().value ( 1 ).toString() != "nan" ) {
-				map->insert ( data.toList().value ( 0 ).toUInt(), data.toList().value ( 1 ).toUInt() );
-			} else {
-				map->insert ( data.toList().value ( 0 ).toUInt(), 0 );
-				qDebug() << "zero value inserted! - map size was: " << map->size();
-			}
-			//qDebug() << data.toList().value(1).toString();
-		}
-
-		//if ( curtimestamp == 0 ) {
-			//curtimestamp = map->constBegin().key() + 50;
-			//qDebug() << "first stamp - now: " << curtimestamp;
-			//qDebug() << "first stamp - last: " << ( map->constEnd() - 1 ).key();
-		//}
-
-		if ( map->size() > 2100 ) {
-			QMap<uint, uint>::iterator i = map->begin();
-			while ( i != map->end() - 1801  ) {
-				i = map->erase ( i );
-			}
-			qDebug() << "new map size: " << map->size();
-		}
-
-		//QString lval;
-		//QMap<uint, uint>::const_iterator i;
-		//for ( i = map->constEnd() - 1 ; i != map->constEnd() - 6; --i ) {
-			//lval.append ( "k: " + QString::number ( i.key() ) + " - v: " + QString::number ( i.value() ) + "\n" );
-		//}
-		//urlPg->lastValues->setPlainText ( lval );
-
-		urlPg->debugLabel->setText ( tr ( "Map size is: %1" ).arg ( map->size() ) );
-
-		// when there is new data available in the map (= when parsed json data)
-		// the moving averages and the plot curves should be updated...
-		showAvg();
-		plotData ( plotPg->plotter );
-	}
-
-}
-
-
 //void Display::showCurrentVal()
 //{
-	//QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( curtimestamp ) * 1000 );
-	//displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
+//QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( curtimestamp ) * 1000 );
+//displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
 
-	//if ( map->contains ( curtimestamp ) ) {
-		//QString val = QString::number ( map->value ( curtimestamp ) );
-		//displayPg->sensorval->display ( val );
-	//} else {
-		//qDebug() << "no value in map!";
-		//displayPg->sensorval->display ( "----" );
-	//}
+//if ( map->contains ( curtimestamp ) ) {
+//QString val = QString::number ( map->value ( curtimestamp ) );
+//displayPg->sensorval->display ( val );
+//} else {
+//qDebug() << "no value in map!";
+//displayPg->sensorval->display ( "----" );
+//}
 
-	//curtimestamp += valinterval;
+//curtimestamp += valinterval;
 //}
 
 void Display::showCurrentVal_alt()
@@ -478,7 +573,7 @@ void Display::showCurrentVal_alt()
 	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( show ) * 1000 );
 	displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
 	displayPg->sensorval->display (  QString::number ( map->value ( show ) ) );
-	
+
 	//qDebug() << "show:" << show;
 	//qDebug() << "mapvals: "  <<  map->value ( show ) << "\n";
 }
@@ -489,7 +584,6 @@ void Display::showAvg()
 	uint avg1 = 0;
 	uint avg2 = 0;
 	//uint avg3 = 0;
-	//int c = 0;
 	int size = map->size();
 	int a1end = 0;
 	int a2end = 0;
@@ -506,40 +600,31 @@ void Display::showAvg()
 	//( size < 3600 ) ? a3end = size : a3end = 3600; // 1h = 3600
 
 	for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a1end ); --i ) {
-		avg1 += i.value(); //hier absichern falls values nicht geliefert wurden...
-		//qDebug() << "k:" << i.key() << "v: " << i.value() << "sum: " << avg1;
-		//c += 1;
-		//qDebug() << "c: " << c;
+		avg1 += i.value(); //TODO: hier absichern falls values nicht geliefert wurden...
 	}
 	avg1 = avg1 / a1end;
 	displayPg->avgval1->display ( ( int ) avg1 );
 	//qDebug() << "avg1: " << avg1;
-	//c = 0;
 
 	for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a2end ); --i ) {
 		avg2 += i.value();
-		//qDebug() << "k:" << i.key() << "v: " << i.value() << "sum: " << avg2;
-		//c += 1;
-		//qDebug() << "c: " << c;
+
 	}
 	avg2 = avg2 / a2end;
 	displayPg->avgval2->display ( ( int ) avg2 );
 	//qDebug() << "avg2: " << avg2;
 
 	//for ( i = ( map->constEnd() - 1 ); i != ( map->constEnd() - 1 - a3end ); --i ) {
-		//avg3 += i.value();
-		//qDebug() << "k:" << i.key() << "v: " << i.value() << "sum: " << avg2;
-		//c += 1;
-		//qDebug() << "c: " << c;
+	//avg3 += i.value();
 	//}
-	
+
 	//avg3 = avg3 / a3end;
 	//displayPg->avgval3->display ( ( int ) avg3 );
 	//qDebug() << "avg3: " << avg3;
 }
 
 
-void Display::sensorErr()
+void Display::sensorErr ( int in )
 {
 	qDebug() << "seems there was a problem downloading sensor data!";
 	qDebug() << "error was: " << reply->errorString();

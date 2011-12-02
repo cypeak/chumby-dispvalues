@@ -47,13 +47,28 @@ class DisplayPage : public QWidget
 //-----------------
 class URLPage : public QWidget
 {
+		Q_OBJECT
+
 	public:
 		URLPage ( QWidget* parent = 0 );
 		QLineEdit* urlLineEdit;
-		QLineEdit* sensorLineEdit;
-		
+		QLineEdit* sensorLineEdit1;
+		QLineEdit* sensorLineEdit2;
+		QLineEdit* sensorLineEdit3;
+
+		QPushButton* sen1;
+		QPushButton* sen2;
+		QPushButton* sen3;
+
+		bool sen1en;
+		bool sen2en;
+		bool sen3en;
+
 		QLabel* statusLabel;
 		QLabel* debugLabel;
+
+	public slots:
+		void buttonToggled ( bool );
 		//QTextEdit* lastValues;
 
 };
@@ -80,15 +95,16 @@ class Display : public QDialog
 		void doPrev();
 		void enablestartButton();
 		void getSensorData();
-		void startRequest ( QUrl url );
-		void httpFinished();
-		void httpReadyRead();
-		void sensorErr();
+		void startRequest ( QUrl );
+		void httpFinished ( int );
+		void httpReadyRead ( int );
+		void sensorErr ( int );
 		void startDisp();
 		//void showCurrentVal();
 		void showCurrentVal_alt();
 		void showAvg();
-		void plotData ( Plotter* plotter );
+		void plotData ( Plotter* );
+		void getAllSensors();
 
 	private:
 		QPushButton* startButton;
@@ -104,6 +120,9 @@ class Display : public QDialog
 		QUrl url;
 		QNetworkAccessManager qnam;
 		QNetworkReply* reply;
+		QNetworkReply* reply1;
+		QNetworkReply* reply2;
+		QNetworkReply* reply3;
 		//QFile* file;
 		//bool httpRequestAborted;
 
@@ -111,13 +130,20 @@ class Display : public QDialog
 		uint valinterval;
 		uint fetchinterval;
 		uint dlcounter;
-		
+		int currentsensor;
+
 		QMap<uint, uint>* map;
+		QMap<uint, uint>* map1;
+		QMap<uint, uint>* map2;
+		QMap<uint, uint>* map3;
 
 		QTimer* tfetch;
 		QTimer* tshow;
 		//QTimer* tavg;
-		QString valConvert ( double value );
+
+		QSignalMapper* finishedMapper;
+		QSignalMapper* readyreadMapper;
+		QSignalMapper* errMapper;
 };
 
 class TimeConverter_s : public Converter

@@ -11,4 +11,4 @@ HEADERS += src/dispval.h \
  src/plotter/plotter.h \
  src/plotter/converter.h \
  src/plotter/qpointd.h
-CONFIG += warn_on debug
+CONFIG += warn_on release
