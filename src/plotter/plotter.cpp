@@ -41,6 +41,7 @@ void Plotter::setPlotSettings ( PlotSettings& settings ) //modify parameters
 	refreshPixmap();
 }
 
+
 void Plotter::zoomIn()
 {
 	if ( curZoom < zoomStack.count() - 1 ) {
@@ -52,6 +53,7 @@ void Plotter::zoomIn()
 	}
 
 }
+
 
 void Plotter::zoomOut()
 {
@@ -68,13 +70,22 @@ void Plotter::zoomOut()
 void Plotter::setCurveData ( int id, const QVector<QPointD>& data )
 {
 	curveMap.insert ( id, data ); //better way to insert data in map
-	refreshPixmap();
+
+	//refreshPixmap(); 	
+	//do not repaint everytime new curvedata is inserted. it's much better to
+	//manually call for plot update when there are multiple curves to plot
+	//at once.. 
 }
 
 
 void Plotter::clearCurve ( int id )
 {
 	curveMap.remove ( id );
+	refreshPixmap();
+}
+
+void Plotter::updatePlot()
+{
 	refreshPixmap();
 }
 
@@ -89,6 +100,7 @@ QSize Plotter::sizeHint() const
 {
 	return QSize ( 8 * MarginL, 8 * MarginB );
 }
+
 
 void Plotter::paintEvent ( QPaintEvent* /* event */ ) //comment unused var
 {
@@ -109,6 +121,7 @@ void Plotter::paintEvent ( QPaintEvent* /* event */ ) //comment unused var
 
 }
 
+
 void Plotter::resizeEvent ( QResizeEvent* /* event */ )
 {
 	int x = width() - ( zoomInButton->width() + zoomInButton->width() + 10 );
@@ -116,6 +129,7 @@ void Plotter::resizeEvent ( QResizeEvent* /* event */ )
 	zoomOutButton->move ( x + zoomInButton->width() + 5, 5 );
 	refreshPixmap();
 }
+
 
 void Plotter::updateRubberBandRegion()
 {
@@ -125,6 +139,7 @@ void Plotter::updateRubberBandRegion()
 	update ( rect.left(), rect.bottom(), rect.width(), 1 );
 	update ( rect.right(), rect.top(), 1, rect.height() );
 }
+
 
 void Plotter::refreshPixmap()
 {

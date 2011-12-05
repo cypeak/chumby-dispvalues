@@ -60,10 +60,6 @@ class URLPage : public QWidget
 		QPushButton* sen2;
 		QPushButton* sen3;
 
-		bool sen1en;
-		bool sen2en;
-		bool sen3en;
-
 		QLabel* statusLabel;
 		QLabel* debugLabel;
 
@@ -89,6 +85,8 @@ class Display : public QDialog
 
 	public:
 		Display();
+		
+		void clearMap(QMap<uint, uint>* map);
 
 	private slots:
 		void doNext();
@@ -96,15 +94,17 @@ class Display : public QDialog
 		void enablestartButton();
 		void getSensorData();
 		void startRequest ( QUrl );
-		void httpFinished ( int );
-		void httpReadyRead ( int );
-		void sensorErr ( int );
+		void httpFinished ( QObject* );
+		void httpReadyRead ( QObject* );
+		void sensorErr ( QObject* );
 		void startDisp();
-		//void showCurrentVal();
 		void showCurrentVal_alt();
 		void showAvg();
 		void plotData ( Plotter* );
+		void plotData_new ( Plotter* );
+		QVector<QPointD> plotData_helper ( QMap<uint, uint>*, int, uint&, uint& );
 		void getAllSensors();
+		void buttonToggled_gatekeeper ( bool );
 
 	private:
 		QPushButton* startButton;
@@ -119,27 +119,26 @@ class Display : public QDialog
 
 		QUrl url;
 		QNetworkAccessManager qnam;
-		QNetworkReply* reply;
+		//QNetworkReply* reply;
 		QNetworkReply* reply1;
 		QNetworkReply* reply2;
 		QNetworkReply* reply3;
 		//QFile* file;
-		//bool httpRequestAborted;
 
 		//uint curtimestamp;
 		uint valinterval;
 		uint fetchinterval;
 		uint dlcounter;
-		int currentsensor;
+		int currentsensors;
 
-		QMap<uint, uint>* map;
+		//QMap<uint, uint>* map;
 		QMap<uint, uint>* map1;
 		QMap<uint, uint>* map2;
 		QMap<uint, uint>* map3;
+		QList<QMap<uint, uint>* >* maps;
 
 		QTimer* tfetch;
 		QTimer* tshow;
-		//QTimer* tavg;
 
 		QSignalMapper* finishedMapper;
 		QSignalMapper* readyreadMapper;

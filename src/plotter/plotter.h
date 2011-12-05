@@ -35,6 +35,7 @@ class Plotter : public QWidget
 	public slots:
 		void zoomIn();
 		void zoomOut();
+		void updatePlot();
 
 
 	protected:

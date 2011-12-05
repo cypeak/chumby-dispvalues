@@ -5,10 +5,11 @@
 int main ( int argc, char **argv )
 {
 	QApplication app ( argc, argv );
+	app.setOverrideCursor( QCursor( Qt::BlankCursor ) );
+	
 	Display dlg;
 	dlg.showFullScreen();
 	dlg.show();
-	app.setOverrideCursor( QCursor( Qt::BlankCursor ) );
-
+	
 	return app.exec();
 }
