@@ -194,7 +194,7 @@ void Plotter::drawGrid ( QPainter* painter )
 void Plotter::drawCurves ( QPainter* painter )
 {
 	static const QColor colorForIds[6] = {
-	                                       Qt::red, Qt::green, Qt::blue, Qt::cyan, Qt::magenta, Qt::yellow
+	                                       Qt::red, Qt::green, Qt::cyan, Qt::magenta, Qt::yellow, Qt::blue
 	                                     };
 	PlotSettings settings = zoomStack[curZoom];
 

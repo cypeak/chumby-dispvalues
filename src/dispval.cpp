@@ -212,18 +212,21 @@ Display::Display() : QDialog()
 	connect ( quitButton, SIGNAL ( clicked() ), this, SLOT ( close() ) );
 	connect ( urlPg->urlLineEdit, SIGNAL ( textChanged ( QString ) ), this, SLOT ( enablestartButton() ) );
 
-	//curtimestamp  = 0;
-	valinterval   = 2;
-	fetchinterval = 8;
-	dlcounter = 0;
+	curtimestamp  = 0; //variable for the latest timestamp (for further use) 
+	valinterval   = 2; //timeinterval (sec) for updating the numerical consumption display 
+	fetchinterval = 8; //timeinterval (sec) for fetching sensordate from a flukso device
+	dlcounter = 0; //counter for debug purposes
 	currentsensors = 1; //on app start only one sensor is enabled by default....
-	
+	int plotdelay = 2; // delay on plotter updating (see httpReadyRead() method for details)
+
 
 	tfetch = new QTimer();
 	tshow = new QTimer();
+	tplot = new QTimer();
 
 	tfetch->setInterval ( 1000 * fetchinterval );
 	tshow->setInterval ( 1000 * valinterval );
+	tplot->setInterval ( 1000 * plotdelay );
 
 	//map = new QMap<uint, uint>();
 	map1 = new QMap<uint, uint>();
@@ -236,8 +239,8 @@ Display::Display() : QDialog()
 	maps->append ( map3 );
 
 	connect ( tshow, SIGNAL ( timeout() ), this, SLOT ( showCurrentVal_alt() ) );
-	//connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getSensorData() ) );
 	connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getAllSensors() ) );
+	connect ( tplot, SIGNAL ( timeout() ), this, SLOT ( updatePlotter() ) );
 
 	finishedMapper = new QSignalMapper ( this );
 	readyreadMapper = new QSignalMapper ( this );
@@ -258,9 +261,30 @@ Display::Display() : QDialog()
 void Display::buttonToggled_gatekeeper ( bool checked )
 {
 	//QPushButton* button = ( QPushButton* ) sender();
-	//button->setText ( ( checked ) ? QString ( "Disable" ) : QString ( "Enable" ) );
 	( checked ) ? currentsensors++ : currentsensors--;
 	qDebug() << "sensors enabled: " << currentsensors;
+	if ( !urlPg->sen1->isChecked() ){
+		map1->clear();
+		qDebug() << "sensor1 data (map1) cleared!";	
+	}
+	
+	if ( !urlPg->sen2->isChecked() ){
+		map2->clear();
+		qDebug() << "sensor2 data (map1) cleared!";	
+	}
+
+	if ( !urlPg->sen3->isChecked() ){
+		map3->clear();
+		qDebug() << "sensor3 data (map1) cleared!";	
+	}
+}
+
+void Display::updatePlotter()
+{	
+	qDebug() << "plotupdate triggered..";
+	tplot->stop();
+	plotData_new ( plotPg->plotter );
+	showAvg();
 }
 
 
@@ -329,13 +353,13 @@ void Display::startDisp()
 		qDebug() << "stoping...";
 		tfetch->stop();
 		tshow->stop();
-		//tavg->stop();
 		qDebug() << "timer stoped.";
-		//curtimestamp = 0;
+
 		dlcounter = 0;
 		map1->clear();
 		map2->clear();
 		map3->clear();
+
 		startButton->setText ( tr ( "Start" ) );
 		urlPg->statusLabel->setText ( tr ( "Stopped" ) );
 	} else {
@@ -343,8 +367,8 @@ void Display::startDisp()
 		getAllSensors();
 		tfetch->start();
 		tshow->start();
-		//tavg->start();
 		qDebug() << "timer started...";
+
 		startButton->setText ( tr ( "Stop" ) );
 	}
 
@@ -372,7 +396,6 @@ void Display::getAllSensors()
 	}
 
 	if ( !urlPg->sensorLineEdit2->text().isEmpty() && urlPg->sen2->isChecked() ) {
-		//qDebug() << "s2:" << sensortxt.arg ( urlPg->sensorLineEdit2->text() );
 
 		QNetworkRequest req ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit2->text() ) ) );
 		req.setAttribute ( QNetworkRequest::User, QString ( "sensor2" ) );
@@ -389,15 +412,24 @@ void Display::getAllSensors()
 	}
 
 	if ( !urlPg->sensorLineEdit3->text().isEmpty() && urlPg->sen3->isChecked() ) {
-		qDebug() << "s3:" << sensortxt.arg ( urlPg->sensorLineEdit3->text() );
-		//reply3 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit3->text()) ) ) );
+
 		QNetworkRequest req ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit3->text() ) ) );
 		req.setAttribute ( QNetworkRequest::User, QString ( "sensor3" ) );
+		//reply3 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit3->text()) ) ) );
+		reply3 = qnam.get ( req );
+
+		finishedMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
+		readyreadMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
+		errMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
+
+		connect ( reply3, SIGNAL ( finished() ), finishedMapper, SLOT ( map() ) );
+		connect ( reply3, SIGNAL ( readyRead() ), readyreadMapper, SLOT ( map() ) );
+		connect ( reply3, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
 	}
 
 }
 
-
+/*
 void Display::getSensorData()
 {
 	QString sensortxt = "/sensor/" + urlPg->sensorLineEdit1->text() + "?unit=watt&interval=minute&version=1.0";
@@ -415,21 +447,21 @@ void Display::startRequest ( QUrl url )
 	connect ( reply1, SIGNAL ( readyRead() ), this, SLOT ( httpReadyRead() ) );
 	connect ( reply1, SIGNAL ( error ( QNetworkReply::NetworkError ) ), this, SLOT ( sensorErr() ) );
 }
-
+*/
 
 void Display::httpFinished ( QObject* repn )
 {
 	QNetworkReply* replyn = qobject_cast<QNetworkReply*> ( repn );
-	QVariant redirectionTarget = replyn->attribute ( QNetworkRequest::RedirectionTargetAttribute );
+	//QVariant redirectionTarget = replyn->attribute ( QNetworkRequest::RedirectionTargetAttribute ); // not needed here
 
 	if ( replyn->error() ) {
 		qDebug() << QString ( tr ( "Sensordata (%1) Download failed: %2" ).arg ( replyn->request().attribute ( QNetworkRequest::User ).toString() ).arg ( replyn->errorString() ) );
-	} else if ( !redirectionTarget.isNull() ) {
-		QUrl newUrl = url.resolved ( redirectionTarget.toUrl() );
-		url = newUrl;
-		replyn->deleteLater();
-		startRequest ( url );
-		return;
+		//} else if ( !redirectionTarget.isNull() ) {
+		//QUrl newUrl = url.resolved ( redirectionTarget.toUrl() );
+		//url = newUrl;
+		//replyn->deleteLater();
+		//startRequest ( url );
+		//return;
 	} else {
 		dlcounter += 1;
 		urlPg->statusLabel->setText ( tr ( "Sensordata downloaded! (count: %1)" ).arg ( dlcounter ) );
@@ -446,14 +478,21 @@ void Display::httpFinished ( QObject* repn )
 void Display::httpReadyRead ( QObject* repn )
 {
 	QNetworkReply* replyn = qobject_cast<QNetworkReply*> ( repn );
-
+	
+	//trigger a plot delay timer; if there is another sensor readout while the
+	//timer is running, the plot update will be delayed again. when a 
+	//timeout occurs, meaning there was no sensor readout during the delay, the
+	//plot will be updated and averages recalculated. this way the peak cpu usage
+	//on the chumby is reduced..
+	tplot->start();	
+	
 	QByteArray result;
 	result = replyn->readAll();
 
 	QString sensormark ( replyn->request().attribute ( QNetworkRequest::User ).toString() );
-	qDebug() << "req user data: " << sensormark;
+	//qDebug() << "req user data: " << sensormark;
 
-	QMap<uint, uint>* map;
+	QMap<uint, uint>* map = 0;
 
 	//depending on which sensordata was requested, the "output" map is switched...
 	if ( sensormark == QString ( "sensor1" ) ) {
@@ -480,23 +519,17 @@ void Display::httpReadyRead ( QObject* repn )
 				map->insert ( data.toList().value ( 0 ).toUInt(), data.toList().value ( 1 ).toUInt() );
 			} else {
 				map->insert ( data.toList().value ( 0 ).toUInt(), ( map->end() - 1 ).value() );
-				qDebug() << "zero/nan value found!-> dupe inserted - map size was: " << map->size() << "for " << sensormark;
+				//qDebug() << "zero/nan value found!-> dupe inserted - map size was: " << map->size() << "for " << sensormark;
 			}
 			//qDebug() << data.toList().value(1).toString();
 		}
-
-		//if ( curtimestamp == 0 ) {
-		//curtimestamp = map->constBegin().key() + 50;
-		//qDebug() << "first stamp - now: " << curtimestamp;
-		//qDebug() << "first stamp - last: " << ( map->constEnd() - 1 ).key();
-		//}
 
 		if ( map->size() > 2100 ) {
 			QMap<uint, uint>::iterator i = map->begin();
 			while ( i != map->end() - 1801  ) {
 				i = map->erase ( i );
 			}
-			qDebug() << "new map size: " << map->size() << "for " << sensormark;
+			qDebug() << sensormark << "data map size was cut down! new size: " << map->size();
 		}
 
 		//QString lval;
@@ -507,11 +540,12 @@ void Display::httpReadyRead ( QObject* repn )
 		//urlPg->lastValues->setPlainText ( lval );
 
 		urlPg->debugLabel->setText ( tr ( "Map sizes are: %1 | %2 | %3" ).arg ( map1->size() ).arg ( map2->size() ).arg ( map3->size() ) );
-
-		// when there is new data available in the map (= when parsed json data)
-		// the moving averages and the plot curves should be updated...
-		showAvg();
-		plotData_new ( plotPg->plotter );
+		/*
+			// when there is new data available in the map (= when parsed json data)
+			// the moving averages and the plot curves should be updated...
+			//showAvg();
+			//plotData_new ( plotPg->plotter );
+		*/
 	}
 
 }
@@ -552,38 +586,39 @@ void Display::plotData_new ( Plotter* plotter )
 		minx = ( ( map3->begin() ).key() ) - ( plotlen - map3->size() );
 		miny = ( map3->end() - 1 ).value();
 	}
-
-	//qDebug() << "miny pre: " << miny;
-	qDebug() << "minx pre: " << minx << " | maxx pre: " << maxx << " | miny pre : " << miny << " | maxy pre: " << maxy ;
+	
+	curtimestamp = maxx;
+	//qDebug() << "minx pre: " << minx << " | maxx pre: " << maxx << " | miny pre : " << miny << " | maxy pre: " << maxy ;
 
 	if ( s1 && !map1->isEmpty() ) {
 		QVector<QPointD> plval = plotData_helper ( map1, plotlen, miny, maxy );
-		plotter->setCurveData ( 1, plval );
-		qDebug() << "minx m1: " << miny << " | maxy m1: " << maxy;
+		plotter->setCurveData ( 0, plval );
+		//qDebug() << "minx m1: " << miny << " | maxy m1: " << maxy;
 	}
 
 	if ( s2 && !map2->isEmpty() ) {
 		QVector<QPointD> plval = plotData_helper ( map2, plotlen, miny, maxy );
-		plotter->setCurveData ( 2, plval );
-		qDebug() << "minx m2: " << miny << " | maxy m2: " << maxy;
+		plotter->setCurveData ( 1, plval );
+		//qDebug() << "minx m2: " << miny << " | maxy m2: " << maxy;
 	}
 
 	if ( s3 && !map3->isEmpty() ) {
 		QVector<QPointD> plval = plotData_helper ( map3, plotlen, miny, maxy );
-		plotter->setCurveData ( 3, plval );
-		qDebug() << "minx m3: " << miny << " | maxy m3: " << maxy;
+		plotter->setCurveData ( 2, plval );
+		//qDebug() << "minx m3: " << miny << " | maxy m3: " << maxy;
 	}
 
 	miny = miny - std::floor ( miny * 0.1 );
 	maxy = maxy + std::ceil ( maxy * 0.1 );
 
-	qDebug() << "minx: " << minx << " | maxx: " << maxx << " | miny: " << miny << " | maxy: " << maxy << "\n";
-	PlotSettings* pset = new PlotSettings (  minx, miny, maxx, maxy, 4, 5 );
-	plotter->setPlotSettings ( *pset );
+	//qDebug() << "minx: " << minx << " | maxx: " << maxx << " | miny: " << miny << " | maxy: " << maxy << "\n";
+	//PlotSettings* pset = new PlotSettings (  minx, miny, maxx, maxy, 4, 5 );
+	//plotter->setPlotSettings ( *pset );
+	plotter->setPlotSettings ( *(new PlotSettings (  minx, miny, maxx, maxy, 4, 5 )) );
 
 }
 
-
+// plot-helper method; just to keep the code a bit cleaner..
 QVector<QPointD> Display::plotData_helper ( QMap<uint, uint>* mp, int plen, uint& miny, uint& maxy )
 {
 	int msize = mp->size();
@@ -689,18 +724,19 @@ void Display::showCurrentVal_alt()
 		//qDebug() << "valiter: " << displayPg->valueiter;
 	}
 
-	uint show = ( map1->constEnd() - 1 - ( int ) fetchinterval + ( int ) displayPg->valueiter ).key();
+	uint showts = ( map1->constEnd() - 1 - ( int ) fetchinterval + ( int ) displayPg->valueiter ).key();
 
-	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( show ) * 1000 );
+	//output data for calculated timestamp...
+	QDateTime dtime = QDateTime::fromMSecsSinceEpoch ( quint64 ( showts ) * 1000 );
 	displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
-	displayPg->sensorval->display (  QString::number ( map1->value ( show ) ) );
+	displayPg->sensorval->display (  QString::number ( map1->value ( showts ) ) );
 
 	//qDebug() << "show:" << show;
 	//qDebug() << "mapvals: "  <<  map1->value ( show ) << "\n";
 }
 
 
-void Display::showAvg()
+void Display::showAvg() //TODO: make dependant on which sensor data is displayed in the first place..
 {
 	uint avg1 = 0;
 	uint avg2 = 0;

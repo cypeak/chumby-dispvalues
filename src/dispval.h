@@ -92,19 +92,20 @@ class Display : public QDialog
 		void doNext();
 		void doPrev();
 		void enablestartButton();
-		void getSensorData();
-		void startRequest ( QUrl );
+		//void getSensorData();
+		//void startRequest ( QUrl );
 		void httpFinished ( QObject* );
 		void httpReadyRead ( QObject* );
 		void sensorErr ( QObject* );
 		void startDisp();
 		void showCurrentVal_alt();
 		void showAvg();
-		void plotData ( Plotter* );
+		//void plotData ( Plotter* );
 		void plotData_new ( Plotter* );
 		QVector<QPointD> plotData_helper ( QMap<uint, uint>*, int, uint&, uint& );
 		void getAllSensors();
 		void buttonToggled_gatekeeper ( bool );
+		void updatePlotter();
 
 	private:
 		QPushButton* startButton;
@@ -125,7 +126,7 @@ class Display : public QDialog
 		QNetworkReply* reply3;
 		//QFile* file;
 
-		//uint curtimestamp;
+		uint curtimestamp;
 		uint valinterval;
 		uint fetchinterval;
 		uint dlcounter;
@@ -139,6 +140,7 @@ class Display : public QDialog
 
 		QTimer* tfetch;
 		QTimer* tshow;
+		QTimer* tplot;
 
 		QSignalMapper* finishedMapper;
 		QSignalMapper* readyreadMapper;
