@@ -13,11 +13,8 @@
 #include <QTimer>
 #include <QMap>
 #include <QLCDNumber>
-//#include <QPalette>
-//#include <QNetworkAccessManager>
 #include <QtNetwork>
 #include <QUrl>
-//#include <QFile>
 #include <QDebug>
 
 #include "json/json.h"
@@ -39,7 +36,6 @@ class DisplayPage : public QWidget
 		QLCDNumber* sensorval;
 		QLCDNumber* avgval1;
 		QLCDNumber* avgval2;
-		//QLCDNumber* avgval3;
 		uint valueiter;
 		uint lastval;
 
@@ -65,7 +61,6 @@ class URLPage : public QWidget
 
 	public slots:
 		void buttonToggled ( bool );
-		//QTextEdit* lastValues;
 
 };
 
@@ -92,20 +87,19 @@ class Display : public QDialog
 		void doNext();
 		void doPrev();
 		void enablestartButton();
-		//void getSensorData();
-		//void startRequest ( QUrl );
 		void httpFinished ( QObject* );
 		void httpReadyRead ( QObject* );
 		void sensorErr ( QObject* );
 		void startDisp();
 		void showCurrentVal_alt();
 		void showAvg();
-		//void plotData ( Plotter* );
 		void plotData_new ( Plotter* );
 		QVector<QPointD> plotData_helper ( QMap<uint, uint>*, int, uint&, uint& );
-		void getAllSensors();
+		//void getAllSensors();
 		void buttonToggled_gatekeeper ( bool );
 		void updatePlotter();
+		void getSensor ( QNetworkReply*& , QString, QString );
+		void getAllSensors_new();
 
 	private:
 		QPushButton* startButton;
@@ -120,11 +114,9 @@ class Display : public QDialog
 
 		QUrl url;
 		QNetworkAccessManager qnam;
-		//QNetworkReply* reply;
 		QNetworkReply* reply1;
 		QNetworkReply* reply2;
 		QNetworkReply* reply3;
-		//QFile* file;
 
 		uint curtimestamp;
 		uint valinterval;
@@ -132,11 +124,10 @@ class Display : public QDialog
 		uint dlcounter;
 		int currentsensors;
 
-		//QMap<uint, uint>* map;
 		QMap<uint, uint>* map1;
 		QMap<uint, uint>* map2;
 		QMap<uint, uint>* map3;
-		QList<QMap<uint, uint>* >* maps;
+		//QList<QMap<uint, uint>* >* maps;
 
 		QTimer* tfetch;
 		QTimer* tshow;
