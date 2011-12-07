@@ -1,10 +1,12 @@
-dispvalues - 01.12.11
+dispvalues - 07.12.11
 
 this is a small qt application for the chumby device.
 
 it reads the sensor data from the flukso device specified and displays 
 the nearly real-time consumption values - including moving averages
-(1min, 10min, 1h). 
+(1min, 15min). 
+at the moment up to three sensors are supported (which is perfectly ok, 
+since the flukso-meter also handles up to 3 sensors..)
 
 there is also a graphical representation (plot) of the sensor data
 displaying the consumption curve for the last 15 minutes; notice that 
@@ -17,7 +19,7 @@ a work-in-progress project.
 
 needed:
 
-- qt 4.7+ librarys
+- qt 4.7+ libs
 - qt-json parser (https://github.com/ereilin/qt-json) (allready included!)
 
 NOTE: qt should be compiled with "qvfb" support, if you want to run the 
