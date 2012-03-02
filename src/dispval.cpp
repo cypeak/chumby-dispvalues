@@ -72,47 +72,72 @@ DisplayPage::DisplayPage ( QWidget* parent ) : QWidget ( parent )
 
 URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 {
-	QLabel* urlLabel = new QLabel ( tr ( "Flukso IP:Port" ) );
-	//urlLineEdit = new QLineEdit ( "http://131.246.191.27:8080/sensor/032ae0de09d3133583fb52da37a5a276?unit=watt&interval=minute&version=1.0" );
-	urlLineEdit = new QLineEdit ( "131.246.191.27:8080" );
+	QSettings settings ( "flukso.conf", QSettings::IniFormat );
+	//QSettings settings ( "/mnt/usb/flukso.conf", QSettings::IniFormat );
 
-	// more or less "hardcoded" for the time being...will certainly be changed!
+	QLabel* urlLabel = new QLabel ( tr ( "Flukso IP:Port" ) );
+	//urlLineEdit = new QLineEdit ( "131.246.191.27:8080" );
+	//urlLineEdit = new QLineEdit ( "192.168.130.21:8080" );
+	urlLineEdit = new QLineEdit ( settings.value ( "ip" ).toString() + ":" + settings.value("port").toString() );
+
 	QLabel* sensorLabel = new QLabel ( tr ( "Sensors:" ) );
 
-	sensorLineEdit1 = new QLineEdit ( "032ae0de09d3133583fb52da37a5a276" );
-	sensorLineEdit2 = new QLineEdit ( "7db5114835cbce460409c6d719d0742e" );
-	sensorLineEdit3 = new QLineEdit ( "c5bcf355c8c257763d9c33029da9b5d8" );
+	//sensorLineEdit1 = new QLineEdit ( settings.value ( "sensor1" ).toString() );
+	//sensorLineEdit2 = new QLineEdit ( settings.value ( "sensor2" ).toString() );
+	//sensorLineEdit3 = new QLineEdit ( settings.value ( "sensor3" ).toString() );
+
+	sensorLabel1 = new QLabel ( settings.value ( "sensor1" ).toString() );
+	sensorLabel2 = new QLabel ( settings.value ( "sensor2" ).toString() );
+	sensorLabel3 = new QLabel ( settings.value ( "sensor3" ).toString() );
+	
+	//sensorLineEdit1 = new QLineEdit ( "032ae0de09d3133583fb52da37a5a276" );
+	//sensorLineEdit2 = new QLineEdit ( "7db5114835cbce460409c6d719d0742e" );
+	//sensorLineEdit3 = new QLineEdit ( "c5bcf355c8c257763d9c33029da9b5d8" );
 
 	sen1 = new QPushButton ( "Enable" );
 	sen2 = new QPushButton ( "Enable" );
 	sen3 = new QPushButton ( "Enable" );
 
+	sen1->setCheckable ( true );
+	sen2->setCheckable ( true );
+	sen3->setCheckable ( true );
+
 	sen1->setMaximumWidth ( 54 );
 	sen2->setMaximumWidth ( 54 );
 	sen3->setMaximumWidth ( 54 );
 
-	sen1->setCheckable ( true );
-	sen2->setCheckable ( true );
-	sen3->setCheckable ( true );
-	sen1->setChecked ( true );
-	sen1->setText ( "Disable" );
-	sen2->setChecked ( false );
-	sen3->setChecked ( false );
+	if ( settings.value ( "sen1ena" ).toInt() == 1 ) {
+		sen1->setChecked ( true );
+		sen1->setText ( "Disable" );
+	}
+
+	if ( settings.value ( "sen2ena" ).toInt() == 1 ) {
+		sen2->setChecked ( true );
+		sen2->setText ( "Disable" );
+	}
+
+	if ( settings.value ( "sen3ena" ).toInt() == 1 ) {
+		sen3->setChecked ( true );
+		sen3->setText ( "Disable" );
+	}
 
 	QHBoxLayout* topLayout = new QHBoxLayout;
 	topLayout->addWidget ( urlLabel );
 	topLayout->addWidget ( urlLineEdit );
 
 	QHBoxLayout* topLayout_s1 = new QHBoxLayout;
-	topLayout_s1->addWidget ( sensorLineEdit1 );
+	//topLayout_s1->addWidget ( sensorLineEdit1 );
+	topLayout_s1->addWidget ( sensorLabel1 );
 	topLayout_s1->addWidget ( sen1 );
 
 	QHBoxLayout* topLayout_s2 = new QHBoxLayout;
-	topLayout_s2->addWidget ( sensorLineEdit2 );
+	//topLayout_s2->addWidget ( sensorLineEdit2 );
+	topLayout_s2->addWidget ( sensorLabel2 );
 	topLayout_s2->addWidget ( sen2 );
 
 	QHBoxLayout* topLayout_s3 = new QHBoxLayout;
-	topLayout_s3->addWidget ( sensorLineEdit3 );
+	//topLayout_s3->addWidget ( sensorLineEdit3 );
+	topLayout_s3->addWidget ( sensorLabel3 );
 	topLayout_s3->addWidget ( sen3 );
 
 	QVBoxLayout* topLayout2 = new QVBoxLayout;
@@ -248,7 +273,7 @@ void Display::buttonToggled_gatekeeper ( bool checked )
 {
 	( checked ) ? currentsensors++ : currentsensors--;
 	qDebug() << "sensors enabled: " << currentsensors;
-	
+
 	if ( !urlPg->sen1->isChecked() ) {
 		map1->clear();
 		qDebug() << "sensor1 data (map1) cleared!";
@@ -360,6 +385,7 @@ void Display::startDisp()
 
 }
 
+
 void Display::getSensor ( QNetworkReply*& replyn, QString sensortoken, QString sensormarker )
 {
 
@@ -368,7 +394,7 @@ void Display::getSensor ( QNetworkReply*& replyn, QString sensortoken, QString s
 
 	req.setAttribute ( QNetworkRequest::User, QString ( sensormarker ) );
 
-	replyn = qnam.get ( req );
+	replyn = qnam.get ( req ); //store reply in a QNetworkReply object
 
 	finishedMapper->setMapping ( replyn, qobject_cast<QObject*> ( replyn ) );
 	readyreadMapper->setMapping ( replyn, qobject_cast<QObject*> ( replyn ) );
@@ -379,18 +405,19 @@ void Display::getSensor ( QNetworkReply*& replyn, QString sensortoken, QString s
 	connect ( replyn, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
 }
 
+
 void Display::getAllSensors_new()
 {
-	if ( !urlPg->sensorLineEdit1->text().isEmpty() && urlPg->sen1->isChecked() ) {
-		getSensor ( reply1 , urlPg->sensorLineEdit1->text(), "sensor1" );
+	if ( !urlPg->sensorLabel1->text().isEmpty() && urlPg->sen1->isChecked() ) {
+		getSensor ( reply1 , urlPg->sensorLabel1->text(), "sensor1" );
 	}
 
-	if ( !urlPg->sensorLineEdit2->text().isEmpty() && urlPg->sen2->isChecked() ) {
-		getSensor ( reply2 , urlPg->sensorLineEdit2->text(), "sensor2" );
+	if ( !urlPg->sensorLabel2->text().isEmpty() && urlPg->sen2->isChecked() ) {
+		getSensor ( reply2 , urlPg->sensorLabel2->text(), "sensor2" );
 	}
 
-	if ( !urlPg->sensorLineEdit3->text().isEmpty() && urlPg->sen3->isChecked() ) {
-		getSensor ( reply3 , urlPg->sensorLineEdit3->text(), "sensor3" );
+	if ( !urlPg->sensorLabel3->text().isEmpty() && urlPg->sen3->isChecked() ) {
+		getSensor ( reply3 , urlPg->sensorLabel3->text(), "sensor3" );
 	}
 }
 
@@ -482,9 +509,9 @@ void Display::httpReadyRead ( QObject* repn )
 	QNetworkReply* replyn = qobject_cast<QNetworkReply*> ( repn );
 
 	//trigger a plot delay timer; if there is another sensor readout while the
-	//timer is running, the plot update will be delayed again (timer restart). 
-	//when a timeout occurs, meaning there was no sensor readout during the delay, 
-	//the plot will be updated and averages recalculated. this way the peak cpu 
+	//timer is running, the plot update will be delayed again (timer restart).
+	//when a timeout occurs, meaning there was no sensor readout during the delay,
+	//the plot will be updated and averages recalculated. this way the peak cpu
 	//usage on the chumby is reduced..
 	tplot->start();
 
@@ -521,6 +548,9 @@ void Display::httpReadyRead ( QObject* repn )
 				map->insert ( data.toList().value ( 0 ).toUInt(), data.toList().value ( 1 ).toUInt() );
 			} else {
 				map->insert ( data.toList().value ( 0 ).toUInt(), ( map->end() - 1 ).value() );
+				//map->insert ( data.toList().value ( 0 ).toUInt(), map->value( data.toList().value ( 0 ).toUInt() - 1 ) ); //alternative
+				//map->insert ( data.toList().value ( 0 ).toUInt(), 0 ); //alternative2
+
 				//qDebug() << "zero/nan value found!-> dupe inserted - map size was: " << map->size() << "for " << sensormark;
 			}
 			//qDebug() << data.toList().value(1).toString();

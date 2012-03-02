@@ -204,6 +204,7 @@ void Plotter::drawCurves ( QPainter* painter )
 	}
 
 	painter->setClipRect ( rect.adjusted ( + 1, + 1, -1, -1 ) );
+	
 	QMapIterator<int, QVector<QPointD> > i ( curveMap );
 	while ( i.hasNext() ) {
 		i.next();

@@ -43,7 +43,7 @@ class Plotter : public QWidget
 		void resizeEvent ( QResizeEvent* event );
 		
 		//not implemented for the chumby single-click-touchscreen yet!
-		//will be used for zoom-feature in future version
+		//can be used for zoom-feature in future versions
 		//void mousePressEvent ( QMouseEvent* event ); 
 		//void mouseReleaseEvent ( QMouseEvent* event );
 

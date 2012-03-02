@@ -48,9 +48,12 @@ class URLPage : public QWidget
 	public:
 		URLPage ( QWidget* parent = 0 );
 		QLineEdit* urlLineEdit;
-		QLineEdit* sensorLineEdit1;
-		QLineEdit* sensorLineEdit2;
-		QLineEdit* sensorLineEdit3;
+		//QLineEdit* sensorLineEdit1;
+		//QLineEdit* sensorLineEdit2;
+		//QLineEdit* sensorLineEdit3;
+		QLabel* sensorLabel1;
+		QLabel* sensorLabel2;
+		QLabel* sensorLabel3;
 
 		QPushButton* sen1;
 		QPushButton* sen2;
