@@ -78,21 +78,13 @@ URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 	QLabel* urlLabel = new QLabel ( tr ( "Flukso IP:Port" ) );
 	//urlLineEdit = new QLineEdit ( "131.246.191.27:8080" );
 	//urlLineEdit = new QLineEdit ( "192.168.130.21:8080" );
-	urlLineEdit = new QLineEdit ( settings.value ( "ip" ).toString() + ":" + settings.value("port").toString() );
+	urlLineEdit = new QLineEdit ( settings.value ( "ip" ).toString() + ":" + settings.value ( "port" ).toString() );
 
 	QLabel* sensorLabel = new QLabel ( tr ( "Sensors:" ) );
-
-	//sensorLineEdit1 = new QLineEdit ( settings.value ( "sensor1" ).toString() );
-	//sensorLineEdit2 = new QLineEdit ( settings.value ( "sensor2" ).toString() );
-	//sensorLineEdit3 = new QLineEdit ( settings.value ( "sensor3" ).toString() );
 
 	sensorLabel1 = new QLabel ( settings.value ( "sensor1" ).toString() );
 	sensorLabel2 = new QLabel ( settings.value ( "sensor2" ).toString() );
 	sensorLabel3 = new QLabel ( settings.value ( "sensor3" ).toString() );
-	
-	//sensorLineEdit1 = new QLineEdit ( "032ae0de09d3133583fb52da37a5a276" );
-	//sensorLineEdit2 = new QLineEdit ( "7db5114835cbce460409c6d719d0742e" );
-	//sensorLineEdit3 = new QLineEdit ( "c5bcf355c8c257763d9c33029da9b5d8" );
 
 	sen1 = new QPushButton ( "Enable" );
 	sen2 = new QPushButton ( "Enable" );
@@ -226,10 +218,10 @@ Display::Display() : QDialog()
 
 	curtimestamp  = 0; //variable for the latest timestamp (for further use)
 	valinterval   = 2; //timeinterval (sec) for updating the numerical consumption display
-	fetchinterval = 8; //timeinterval (sec) for fetching sensordate from a flukso device
+	fetchinterval = 4; //timeinterval (sec) for fetching sensordate from a flukso device
 	dlcounter = 0; //counter for debug purposes
 	currentsensors = 1; //on app start only one sensor is enabled by default....
-	int plotdelay = 2; // delay on plotter updating (see httpReadyRead() method for details)
+	int plotdelay = 1; // delay on plotter updating (see httpReadyRead() method for details)
 
 
 	tfetch = new QTimer();
@@ -266,6 +258,57 @@ Display::Display() : QDialog()
 	connect ( urlPg->sen3, SIGNAL ( toggled ( bool ) ), this, SLOT ( buttonToggled_gatekeeper ( bool ) ) );
 
 	qDebug() << "created..";
+
+	checkSettings();
+}
+
+
+//performs a quick check at app-start; if the flukso device specified in "flukso.conf" with 
+//it's first sensor is reachable or not
+void Display::checkSettings()
+{
+
+	QSettings settings ( "flukso.conf", QSettings::IniFormat );
+	QString ipport ( settings.value ( "ip" ).toString() + ":" + settings.value ( "port" ).toString() );
+	QString sen ( settings.value ( "sensor1" ).toString() );
+
+	QNetworkRequest req ( QUrl ( "http://" + ipport + QString ( "/sensor/%1?unit=watt&interval=minute&version=1.0" ).arg ( sen ) ) );
+
+	qDebug() << "---checker-->" << req.url().toString();
+
+	QNetworkAccessManager* manager = new QNetworkAccessManager ( this );
+	manager->get ( req );
+
+	connect ( manager, SIGNAL ( finished ( QNetworkReply* ) ), this, SLOT ( checkSettingsStatus ( QNetworkReply* ) ) );
+
+}
+
+
+//evaluates the result of the networking check at the start..
+void Display::checkSettingsStatus ( QNetworkReply* rep )
+{
+
+	if ( rep->error() == QNetworkReply::NoError ) {
+		qDebug() << "-out-->" << rep->readAll();
+		rep->deleteLater();
+		startDisp();
+	} else {
+		qDebug() << QString ( "there was a problem downloading %1 data!" ).arg ( rep->url().toString() );
+		qDebug() << "error was: " << rep->errorString();
+
+		QMessageBox::StandardButton ret;
+		ret = QMessageBox::critical ( this, "Connection Error", "Couldn't reach the Flukso device. Check your Settings!", QMessageBox::Abort | QMessageBox::Retry );
+		if ( ret == QMessageBox::Abort ) {
+			rep->deleteLater();
+			close();
+		} else if ( ret == QMessageBox::Retry ) {
+			rep->deleteLater();
+			checkSettings();
+		}
+		//QMessageBox* msgBox = new QMessageBox ( QMessageBox::Critical, "Connection Error" , "Couldn't reach the Flukso device. Check your Settings!", QMessageBox::Ok | QMessageBox::Retry , this, Qt::Dialog | Qt::CustomizeWindowHint );
+		//msgBox->exec();
+	}
+	//rep->deleteLater();
 }
 
 // experimental method for use in conjunction with plot-update triggering..to be further implemented...
@@ -422,69 +465,6 @@ void Display::getAllSensors_new()
 }
 
 
-/*
-void Display::getAllSensors()
-{
-	QString sensortxt = "/sensor/%1?unit=watt&interval=minute&version=1.0";
-
-	if ( !urlPg->sensorLineEdit1->text().isEmpty() && urlPg->sen1->isChecked() ) {
-
-		QNetworkRequest req ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit1->text() ) ) );
-		req.setAttribute ( QNetworkRequest::User, QString ( "sensor1" ) );
-		//reply = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit1->text() ) ) ) );
-		reply1 = qnam.get ( req );
-
-		//getSensor( reply1 ,urlPg->sensorLineEdit1->text(),"sensor1");
-
-		finishedMapper->setMapping ( reply1, qobject_cast<QObject*> ( reply1 ) );
-		readyreadMapper->setMapping ( reply1, qobject_cast<QObject*> ( reply1 ) );
-		errMapper->setMapping ( reply1, qobject_cast<QObject*> ( reply1 ) );
-
-		connect ( reply1, SIGNAL ( finished() ), finishedMapper, SLOT ( map() ) );
-		connect ( reply1, SIGNAL ( readyRead() ), readyreadMapper, SLOT ( map() ) );
-		connect ( reply1, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
-
-	}
-
-	if ( !urlPg->sensorLineEdit2->text().isEmpty() && urlPg->sen2->isChecked() ) {
-
-		QNetworkRequest req ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit2->text() ) ) );
-		req.setAttribute ( QNetworkRequest::User, QString ( "sensor2" ) );
-		//reply2 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit2->text()) ) ) );
-		reply2 = qnam.get ( req );
-
-		//getSensor( reply2 ,urlPg->sensorLineEdit2->text(),"sensor2");
-
-		finishedMapper->setMapping ( reply2, qobject_cast<QObject*> ( reply2 ) );
-		readyreadMapper->setMapping ( reply2, qobject_cast<QObject*> ( reply2 ) );
-		errMapper->setMapping ( reply2, qobject_cast<QObject*> ( reply2 ) );
-
-		connect ( reply2, SIGNAL ( finished() ), finishedMapper, SLOT ( map() ) );
-		connect ( reply2, SIGNAL ( readyRead() ), readyreadMapper, SLOT ( map() ) );
-		connect ( reply2, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
-
-	}
-
-	if ( !urlPg->sensorLineEdit3->text().isEmpty() && urlPg->sen3->isChecked() ) {
-
-		QNetworkRequest req ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg ( urlPg->sensorLineEdit3->text() ) ) );
-		req.setAttribute ( QNetworkRequest::User, QString ( "sensor3" ) );
-		//reply3 = qnam.get ( QNetworkRequest ( QUrl ( "http://" + urlPg->urlLineEdit->text() + sensortxt.arg(urlPg->sensorLineEdit3->text()) ) ) );
-		reply3 = qnam.get ( req );
-
-		finishedMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
-		readyreadMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
-		errMapper->setMapping ( reply3, qobject_cast<QObject*> ( reply3 ) );
-
-		connect ( reply3, SIGNAL ( finished() ), finishedMapper, SLOT ( map() ) );
-		connect ( reply3, SIGNAL ( readyRead() ), readyreadMapper, SLOT ( map() ) );
-		connect ( reply3, SIGNAL ( error ( QNetworkReply::NetworkError ) ), errMapper, SLOT ( map() ) );
-	}
-
-}
-*/
-
-
 void Display::httpFinished ( QObject* repn )
 {
 	QNetworkReply* replyn = qobject_cast<QNetworkReply*> ( repn );
@@ -564,7 +544,7 @@ void Display::httpReadyRead ( QObject* repn )
 			qDebug() << sensormark << "data map size was cut down! new size: " << map->size();
 		}
 
-		urlPg->debugLabel->setText ( tr ( "Map sizes are: %1 | %2 | %3" ).arg ( map1->size() ).arg ( map2->size() ).arg ( map3->size() ) );
+		urlPg->debugLabel->setText ( tr ( "Map sizes: %1 | %2 | %3" ).arg ( map1->size() ).arg ( map2->size() ).arg ( map3->size() ) );
 
 	}
 

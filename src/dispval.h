@@ -16,6 +16,7 @@
 #include <QtNetwork>
 #include <QUrl>
 #include <QDebug>
+#include <QMessageBox>
 
 #include "json/json.h"
 #include "plotter/converter.h"
@@ -103,6 +104,8 @@ class Display : public QDialog
 		void updatePlotter();
 		void getSensor ( QNetworkReply*& , QString, QString );
 		void getAllSensors_new();
+		void checkSettings();
+		void checkSettingsStatus(QNetworkReply*);
 
 	private:
 		QPushButton* startButton;
