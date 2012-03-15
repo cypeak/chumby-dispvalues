@@ -263,23 +263,31 @@ Display::Display() : QDialog()
 }
 
 
-//performs a quick check at app-start; if the flukso device specified in "flukso.conf" with 
+//performs a quick check at app-start; if the flukso device specified in "flukso.conf" with
 //it's first sensor is reachable or not
 void Display::checkSettings()
 {
+	if ( QFile::exists ( "flukso.conf" ) ) {
 
-	QSettings settings ( "flukso.conf", QSettings::IniFormat );
-	QString ipport ( settings.value ( "ip" ).toString() + ":" + settings.value ( "port" ).toString() );
-	QString sen ( settings.value ( "sensor1" ).toString() );
+		QSettings settings ( "flukso.conf", QSettings::IniFormat );
+		QString ipport ( settings.value ( "ip" ).toString() + ":" + settings.value ( "port" ).toString() );
+		QString sen ( settings.value ( "sensor1" ).toString() );
 
-	QNetworkRequest req ( QUrl ( "http://" + ipport + QString ( "/sensor/%1?unit=watt&interval=minute&version=1.0" ).arg ( sen ) ) );
+		QNetworkRequest req ( QUrl ( "http://" + ipport + QString ( "/sensor/%1?unit=watt&interval=minute&version=1.0" ).arg ( sen ) ) );
 
-	qDebug() << "---checker-->" << req.url().toString();
+		qDebug() << "---checker-->" << req.url().toString();
 
-	QNetworkAccessManager* manager = new QNetworkAccessManager ( this );
-	manager->get ( req );
+		QNetworkAccessManager* manager = new QNetworkAccessManager ( this );
+		manager->get ( req );
 
-	connect ( manager, SIGNAL ( finished ( QNetworkReply* ) ), this, SLOT ( checkSettingsStatus ( QNetworkReply* ) ) );
+		connect ( manager, SIGNAL ( finished ( QNetworkReply* ) ), this, SLOT ( checkSettingsStatus ( QNetworkReply* ) ) );
+
+	} else {
+		qDebug() << "could not find the flukso configuration file...";
+
+		QMessageBox* msgBox = new QMessageBox ( QMessageBox::Critical, "Configuration Error", "Couldn't find the configuration file!", QMessageBox::Ok , this, Qt::Dialog | Qt::CustomizeWindowHint );
+		msgBox->exec();
+	}
 
 }
 
@@ -311,7 +319,7 @@ void Display::checkSettingsStatus ( QNetworkReply* rep )
 	//rep->deleteLater();
 }
 
-// experimental method for use in conjunction with plot-update triggering..to be further implemented...
+
 void Display::buttonToggled_gatekeeper ( bool checked )
 {
 	( checked ) ? currentsensors++ : currentsensors--;
@@ -332,6 +340,7 @@ void Display::buttonToggled_gatekeeper ( bool checked )
 		qDebug() << "sensor3 data (map1) cleared!";
 	}
 }
+
 
 void Display::updatePlotter()
 {
