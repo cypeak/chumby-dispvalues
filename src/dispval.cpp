@@ -286,6 +286,7 @@ void Display::checkSettings()
 		qDebug() << "could not find the flukso configuration file...";
 
 		QMessageBox* msgBox = new QMessageBox ( QMessageBox::Critical, "Configuration Error", "Couldn't find the configuration file!", QMessageBox::Ok , this, Qt::Dialog | Qt::CustomizeWindowHint );
+		msgBox->move ( 0, 1 );		
 		msgBox->exec();
 	}
 
@@ -304,8 +305,13 @@ void Display::checkSettingsStatus ( QNetworkReply* rep )
 		qDebug() << QString ( "there was a problem downloading %1 data!" ).arg ( rep->url().toString() );
 		qDebug() << "error was: " << rep->errorString();
 
-		QMessageBox::StandardButton ret;
-		ret = QMessageBox::critical ( this, "Connection Error", "Couldn't reach the Flukso device. Check your Settings!", QMessageBox::Abort | QMessageBox::Retry );
+		QMessageBox* msgBox = new QMessageBox ( QMessageBox::Critical, "Connection Error", "Couldn't reach the Flukso device. Check your Settings!", QMessageBox::Abort | QMessageBox::Retry, this, Qt::Dialog | Qt::CustomizeWindowHint  );
+		msgBox->layout()->setContentsMargins ( 5, 6, 5, 6 );
+		msgBox->layout()->setSpacing ( 8 );
+		msgBox->move ( 0, 1 );
+		msgBox->setDetailedText ( ( QString ( "Sensor URL: %1\nError: %2" ).arg ( rep->url().toString() ).arg ( rep->errorString() ) ).remove ( "?unit=watt&interval=minute&version=1.0" , Qt::CaseInsensitive ) );
+		int	ret = msgBox->exec();
+
 		if ( ret == QMessageBox::Abort ) {
 			rep->deleteLater();
 			close();
