@@ -181,14 +181,27 @@ PlotPage::PlotPage ( QWidget* parent ) : QWidget ( parent )
 }
 
 
+VisPage::VisPage ( QWidget* parent ) : QWidget ( parent )
+{
+	QVBoxLayout* layout = new QVBoxLayout ( this );
+	tacho = new Tacho ( this );
+
+	layout->addWidget ( tacho );
+	layout->setContentsMargins ( 0, 0, 0, 0 );
+	layout->setSpacing ( 5 );
+}
+
+
 Display::Display() : QDialog()
 {
 	startButton = new QPushButton ( tr ( "Start" ) );
 	startButton->setDefault ( true );
 	quitButton = new QPushButton ( tr ( "Quit" ) );
 	quitButton->setAutoDefault ( false );
-	previous = new QPushButton ( tr ( "Plot" ) );
-	next = new QPushButton ( tr ( "Debug" ) );
+	previous = new QPushButton ( tr ( "< Numbers" ) );
+	next = new QPushButton ( tr ( "Plot >" ) );
+
+	previous->setEnabled ( false );
 
 	QHBoxLayout* mainbuttonBox = new QHBoxLayout();
 	mainbuttonBox->addWidget ( startButton );
@@ -201,7 +214,9 @@ Display::Display() : QDialog()
 	pages = new QStackedWidget ( this );
 	pages->addWidget ( displayPg = new DisplayPage ( pages ) ); // index 0
 	pages->addWidget ( plotPg = new PlotPage ( pages ) ); // index 1
-	pages->addWidget ( urlPg = new URLPage ( pages ) ); // index 2
+	pages->addWidget ( visPg = new VisPage ( pages ) ); // index 2
+	pages->addWidget ( urlPg = new URLPage ( pages ) ); // index 3
+
 
 	QVBoxLayout* mainlayout = new QVBoxLayout ( this );
 	mainlayout->addWidget ( pages );
@@ -286,7 +301,7 @@ void Display::checkSettings()
 		qDebug() << "could not find the flukso configuration file...";
 
 		QMessageBox* msgBox = new QMessageBox ( QMessageBox::Critical, "Configuration Error", "Couldn't find the configuration file!", QMessageBox::Ok , this, Qt::Dialog | Qt::CustomizeWindowHint );
-		msgBox->move ( 0, 1 );		
+		msgBox->move ( 0, 1 );
 		msgBox->exec();
 	}
 
@@ -350,7 +365,7 @@ void Display::buttonToggled_gatekeeper ( bool checked )
 
 void Display::updatePlotter()
 {
-	qDebug() << "plotupdate triggered..";
+	//qDebug() << "plotupdate triggered..";
 	tplot->stop();
 	plotData_new ( plotPg->plotter );
 	showAvg();
@@ -362,21 +377,23 @@ void Display::doNext() // TODO: refactor button functions!
 	switch ( pages->currentIndex() ) {
 
 		case 0: //displayPg
-			pages->setCurrentWidget ( urlPg );
-			previous->setText ( tr ( "Numbers" ) );
-			next->setText ( tr ( "Plot" ) );
+			pages->setCurrentWidget ( plotPg );
+			previous->setText ( tr ( "< Numbers" ) );
+			previous->setEnabled ( true );
+			next->setText ( tr ( "Visual >" ) );
 			break;
 
 		case 1: //plotPg
-			pages->setCurrentWidget ( urlPg );
-			previous->setText ( tr ( "Numbers" ) );
-			next->setText ( tr ( "Plot" ) );
+			pages->setCurrentWidget ( visPg );
+			previous->setText ( tr ( "< Plot" ) );
+			next->setText ( tr ( "Settings >" ) );
 			break;
 
-		case 2: //urlPg
-			pages->setCurrentWidget ( plotPg );
-			previous->setText ( tr ( "Numbers" ) );
-			next->setText ( tr ( "Debug" ) );
+		case 2: //visPg
+			pages->setCurrentWidget ( urlPg );
+			previous->setText ( tr ( "< Visual" ) );
+			next->setText ( tr ( "Settings >" ) );
+			next->setEnabled ( false );
 			break;
 	}
 }
@@ -387,24 +404,25 @@ void Display::doPrev()
 
 	switch ( pages->currentIndex() ) {
 
-		case 0: //displayPg
-			pages->setCurrentWidget ( plotPg );
-			previous->setText ( tr ( "Numbers" ) );
-			next->setText ( tr ( "Debug" ) );
-			break;
-
 		case 1: //plotPg
 			pages->setCurrentWidget ( displayPg );
-			//previous->setEnabled ( false );
-			previous->setText ( tr ( "Plot" ) );
-			next->setText ( tr ( "Debug" ) );
+			previous->setEnabled ( false );
+			previous->setText ( tr ( "< Numbers" ) );
+			next->setText ( tr ( "Plot >" ) );
 			break;
 
-		case 2: //urlPg
-			pages->setCurrentWidget ( displayPg );
-			previous->setText ( tr ( "Plot" ) );
+		case 2: //visPg
+			pages->setCurrentWidget ( plotPg );
+			previous->setText ( tr ( "< Numbers" ) );
 			//next->setEnabled ( true );
-			next->setText ( tr ( "Debug" ) );
+			next->setText ( tr ( "Visual >" ) );
+			break;
+
+		case 3: //urlPg
+			pages->setCurrentWidget ( visPg );
+			previous->setText ( tr ( "< Plot" ) );
+			next->setEnabled ( true );
+			next->setText ( tr ( "Setting >" ) );
 			break;
 	}
 }
@@ -677,6 +695,7 @@ void Display::showCurrentVal_alt()
 	displayPg->digitalClk->display (  dtime.toString ( "hh:mm:ss" ) );
 	displayPg->sensorval->display (  QString::number ( map1->value ( showts ) ) );
 
+	visPg->tacho->setValue ( map1->value ( showts ) );
 	//qDebug() << "show:" << show;
 	//qDebug() << "mapvals: "  <<  map1->value ( show ) << "\n";
 }

@@ -21,7 +21,7 @@ class Plotter : public QWidget
 {
 		Q_OBJECT
 	public:
-		Plotter ( QWidget* parent = 0);
+		Plotter ( QWidget* parent = 0 );
 
 		void setPlotSettings ( PlotSettings& settings );
 		void setCurveData ( int id, const QVector<QPointD>& data );

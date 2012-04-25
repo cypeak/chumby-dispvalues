@@ -22,6 +22,7 @@
 #include "plotter/converter.h"
 #include "plotter/plotter.h"
 #include "plotter/plotsettings.h"
+#include "spritevis/tacho.h"
 #include <cmath>
 
 class Plotter;
@@ -77,6 +78,15 @@ class PlotPage : public QWidget
 
 };
 
+//-----------------
+class VisPage : public QWidget
+{
+	public:
+		VisPage ( QWidget* parent = 0 );
+		Tacho* tacho;
+
+};
+
 //----------------------
 class Display : public QDialog
 {
@@ -117,6 +127,7 @@ class Display : public QDialog
 		DisplayPage* displayPg;
 		URLPage* urlPg;
 		PlotPage* plotPg;
+		VisPage* visPg;
 
 		QUrl url;
 		QNetworkAccessManager qnam;

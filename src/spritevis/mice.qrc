@@ -1,0 +1,11 @@
+ <RCC>
+     <qresource prefix="/" >
+         <file>images/cheese.png</file>
+         <file>images/Blitz.png</file>
+         <file>images/Blitzcol.png</file>
+         <file>images/Funken.jpg</file>
+         <file>images/windrad.jpg</file>
+         <file>images/windradt.png</file>
+         <file>images/tachos.jpg</file>
+     </qresource>
+ </RCC>
