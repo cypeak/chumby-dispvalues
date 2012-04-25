@@ -18,16 +18,9 @@ Tacho::Tacho( QWidget* parent ) : QWidget( parent ), val (0)
 
 	qsrand ( QTime ( 0, 0, 0 ).secsTo ( QTime::currentTime() ) );
 
-	//QVBoxLayout* layout = new QVBoxLayout ( this );
-	//plotter = new Plotter ( this );
-
 	QGraphicsScene* scene = new QGraphicsScene();
 	scene->setSceneRect ( -150, -100, 300, 200 );
 	scene->setItemIndexMethod ( QGraphicsScene::NoIndex );
-
-	//layout->addWidget ( &scene );
-	//layout->setContentsMargins ( 0, 0, 0, 0 );
-	//layout->setSpacing ( 0 );
 
 //	for ( int i = 0; i < MouseCount; ++i ) {
 //		Mouse *mouse = new Mouse;
@@ -44,8 +37,6 @@ Tacho::Tacho( QWidget* parent ) : QWidget( parent ), val (0)
 	zeig = new Zeiger;
 	zeig->setPos ( 0, 0 );
 	scene->addItem ( zeig );
-
-	//ctr = 0;
 
 	intext = scene->addText ( "W: " + QString::number ( val ), QFont("Times", 15, QFont::Bold) );
 	intext->setPos ( -60, 55 );
@@ -74,8 +65,6 @@ Tacho::Tacho( QWidget* parent ) : QWidget( parent ), val (0)
 void Tacho::doanim()
 {
 	//qDebug() << "called timer..";
-	//ctr += 10;
-	//ctr = val;
 	intext->setPlainText("W: " + QString::number ( val ));
 }
 

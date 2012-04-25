@@ -13,7 +13,6 @@ class Tacho : public QWidget
 		void setValue(uint);
 	
 	private:
-		//uint ctr;
 		QGraphicsTextItem* intext;	
 		Zeiger* zeig;
 		uint val;

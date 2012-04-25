@@ -7,17 +7,6 @@
 
 #include <math.h>
 
-static const double Pi = 3.14159265358979323846264338327950288419717;
-static double TwoPi = 2.0 * Pi;
-
-static double normalizeAngle ( double angle )
-{
-	while ( angle < 0 )
-		angle += TwoPi;
-	while ( angle > TwoPi )
-		angle -= TwoPi;
-	return angle;
-}
 
 static double binomi ( int i, int n )
 {
