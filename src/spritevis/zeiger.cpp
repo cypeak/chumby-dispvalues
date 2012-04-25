@@ -19,22 +19,27 @@ static double normalizeAngle ( double angle )
 	return angle;
 }
 
-
-Zeiger::Zeiger()
-		: angle ( -115 ), speed ( 0 ), vor ( true ), soll_angle ( 0 )
+static double binomi ( int i, int n )
 {
-	//setPixmap ( QPixmap ( ":/images/windradt.png" ) );
-	//setRotation(0);
-	//setRotation ( qrand() % ( 360 * 16 ) );
-	//int xo = QPixmap ( ":/images/windradt.png" ).width();
-	//
-	//int yo = QPixmap ( ":/images/windradt.png" ).height();
-	//qDebug() << "wid: " << xo;
-	//qDebug() << "hig: " << yo;
-	//setOffset ( -( xo / 2 ) , -( yo / 2 ) );
+	if ( i == 0 || i == n ) {
+		return 1.0;
+	} else {
+		return binomi ( n -1, i - 1 ) + binomi ( n - 1, i );
+	}
+}
+
+static double bernstein ( int i, int n, double t )
+{
+	return binomi ( i, n ) * pow ( t, i ) * pow ( ( 1 - t ), ( n - i ) );
+}
+
+Zeiger::Zeiger() : angle ( -115 ), time ( 0.0 ), soll_angle ( 0 ), old_angle ( 0 )
+{
 	setTransformationMode ( Qt::SmoothTransformation );
 	setShapeMode ( QGraphicsPixmapItem::BoundingRectShape );
 }
+
+
 /*
 QPainterPath Zeiger::shape() const
 {
@@ -96,7 +101,13 @@ void Zeiger::advance ( int step )
 	if ( !step )
 		return;
 
+	if ( old_angle == soll_angle ) {
+		time = 0.0;
+		return;
+	}
 
+	//old not-so-smooth-method...
+	/*
 	if ( angle > ( soll_angle + 3.0 ) ) {
 		angle -= 3.0;
 	} else if ( angle < ( soll_angle - 3.0 ) ) {
@@ -105,20 +116,30 @@ void Zeiger::advance ( int step )
 		angle = soll_angle;
 	}
 
-
 	if ( angle >= 360 ) {
 		angle -= 360;
-	}
+	}*/
 
-	//qDebug() << "rot: " << dx << " -> ang: " << angle << " -> xrot: " << rotation();
-	//setRotation ( rotation() + dx );
-	//qDebug() << "ang: " << angle << " -> xrot: " << rotation();
+	int showan = 0;
+
+	double t = time / 49.0;
+	time += 1.0;
+
+	showan = ( bernstein ( 0, 1, t ) * old_angle ) + ( bernstein ( 1, 1, t ) * soll_angle );
+
+
+	angle = showan - 115;
 	setRotation ( angle );
 }
 
+
 void Zeiger::setVal ( uint value )
-{	
-	double zw = double(value) / 4500.0;
-	soll_angle = -115 + int ( 270 * zw );
-	//qDebug() << "zeiger: " << soll_angle;
+{
+	double zw = double ( value ) / 4500.0;
+	//soll_angle = -115 + int ( 270 * zw );
+	soll_angle = int ( 270 * zw );
+	old_angle = angle + 115 ;
+	time = 0.0;
+	qDebug() << "zeiger_soll: " << soll_angle;
+	qDebug() << "zeiger_ist: " << old_angle;
 }

@@ -19,9 +19,9 @@ class Zeiger : public QGraphicsPixmapItem
 
 	private:
 		double angle;
-		double speed;
-		bool vor;
+		double time;
 		int soll_angle;
+		int old_angle;
 };
 
 #endif // __ZEIGER_H__
