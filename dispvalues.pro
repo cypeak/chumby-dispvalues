@@ -17,5 +17,5 @@ HEADERS += src/dispval.h \
  src/spritevis/tacho.h \
  src/spritevis/zeiger.h \
  src/spritevis/qcustomgraphview.h
-CONFIG += warn_on debug
+CONFIG += warn_on release
 RESOURCES += src/spritevis/mice.qrc

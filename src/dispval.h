@@ -144,7 +144,6 @@ class Display : public QDialog
 		QMap<uint, uint>* map1;
 		QMap<uint, uint>* map2;
 		QMap<uint, uint>* map3;
-		//QList<QMap<uint, uint>* >* maps;
 
 		QTimer* tfetch;
 		QTimer* tshow;

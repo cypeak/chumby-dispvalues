@@ -49,7 +49,7 @@ Tacho::Tacho( QWidget* parent ) : QWidget( parent ), val (0)
 	view->setDragMode ( QGraphicsView::ScrollHandDrag );
 	//view->setWindowTitle ( QT_TRANSLATE_NOOP ( QGraphicsView, "Colliding Blitz" ) );
 
-	view->resize ( 320, 220 ); 
+	view->resize ( 320, 205 ); 
 	view->show();
 
 

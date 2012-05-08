@@ -14,8 +14,8 @@ void CustQGraphView::drawBackground ( QPainter* painter, const QRectF& rect )
 {
 	qDebug() << "background rect: " << rect << endl;
 
-	QPixmap *backgroundPixmap = new QPixmap ( ":/images/tachos.jpg" );
-	QPixmap sized = backgroundPixmap->scaled ( QSize ( rect.width(), rect.height() ), Qt::KeepAspectRatioByExpanding );
+	QPixmap *backgroundPixmap = new QPixmap ( ":/images/tachoed.jpg" );
+	QPixmap sized = backgroundPixmap->scaled ( QSize ( rect.width(), rect.height() ), Qt::KeepAspectRatio );
 
 	painter->drawPixmap ( rect, sized, QRect ( 0.0, 0.0, sized.width(), sized.height() ) );
 

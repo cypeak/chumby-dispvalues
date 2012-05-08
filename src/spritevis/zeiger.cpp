@@ -47,7 +47,7 @@ QPainterPath Zeiger::shape() const
 QRectF Zeiger::boundingRect() const
 {
 	qreal penWidth = 1;
-	return QRectF ( -7 - penWidth / 2, -100 - penWidth / 2, 14 + penWidth, 108 + penWidth );
+	return QRectF ( -7 - penWidth / 2, -95 - penWidth / 2, 14 + penWidth, 108 + penWidth );
 }
 
 /*
@@ -63,22 +63,15 @@ QPainterPath Zeiger::shape() const
 
 void Zeiger::paint ( QPainter *painter, const QStyleOptionGraphicsItem *, QWidget * )
 {
-	if ( angle < -90 ) {
-		painter->setBrush ( Qt::green );
-	} else if ( angle < -8 ) {
-		painter->setBrush ( Qt::white );
-	} else if ( angle < 74 ) {
-		painter->setBrush ( Qt::yellow );
-	} else if ( angle < 160 ) {
-		painter->setBrush ( Qt::red );
-	}
 
-	//painter->setBrush ( Qt::green );
+	painter->setBrush ( QColor::fromHsv ( 90 + int( ( -90.0 / 270.0 ) * ( angle + 115 ) ), 255, 255  ) );
+
+	painter->setBrush ( Qt::green );
 
 	static const QPoint zeig[3] = {
 	                                QPoint ( 7, 8 ),
 	                                QPoint ( -7, 8 ),
-	                                QPoint ( 0, -100 )
+	                                QPoint ( 0, -95 )
 	                              };
 
 	painter->drawConvexPolygon ( zeig, 3 );
@@ -126,7 +119,12 @@ void Zeiger::setVal ( uint value )
 {
 	double zw = double ( value ) / 4500.0;
 	//soll_angle = -115 + int ( 270 * zw );
-	soll_angle = int ( 270 * zw );
+	if ( zw >= 1.0 ) {
+		soll_angle = 270;
+	} else {
+		soll_angle = int ( 270 * zw );
+	}
+
 	old_angle = angle + 115 ;
 	time = 0.0;
 	qDebug() << "zeiger_soll: " << soll_angle;

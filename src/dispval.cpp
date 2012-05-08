@@ -72,7 +72,8 @@ DisplayPage::DisplayPage ( QWidget* parent ) : QWidget ( parent )
 
 URLPage::URLPage ( QWidget* parent ) : QWidget ( parent )
 {
-	QSettings settings ( "flukso.conf", QSettings::IniFormat );
+	//QSettings settings ( "flukso.conf", QSettings::IniFormat );	
+	QSettings settings ( "/mnt/usb/displayvalues/flukso.conf", QSettings::IniFormat );
 	//QSettings settings ( "/mnt/usb/flukso.conf", QSettings::IniFormat );
 
 	QLabel* urlLabel = new QLabel ( tr ( "Flukso IP:Port" ) );
@@ -251,10 +252,6 @@ Display::Display() : QDialog()
 	map2 = new QMap<uint, uint>();
 	map3 = new QMap<uint, uint>();
 
-	//maps = new QList<QMap<uint, uint>* > ();
-	//maps->append ( map1 );
-	//maps->append ( map2 );
-	//maps->append ( map3 );
 
 	connect ( tshow, SIGNAL ( timeout() ), this, SLOT ( showCurrentVal_alt() ) );
 	connect ( tfetch, SIGNAL ( timeout() ), this, SLOT ( getAllSensors_new() ) );
@@ -282,9 +279,9 @@ Display::Display() : QDialog()
 //it's first sensor is reachable or not
 void Display::checkSettings()
 {
-	if ( QFile::exists ( "flukso.conf" ) ) {
+	if ( QFile::exists ( "/mnt/usb/displayvalues/flukso.conf" ) ) {
 
-		QSettings settings ( "flukso.conf", QSettings::IniFormat );
+		QSettings settings ( "/mnt/usb/displayvalues/flukso.conf", QSettings::IniFormat );
 		QString ipport ( settings.value ( "ip" ).toString() + ":" + settings.value ( "port" ).toString() );
 		QString sen ( settings.value ( "sensor1" ).toString() );
 
@@ -414,7 +411,6 @@ void Display::doPrev()
 		case 2: //visPg
 			pages->setCurrentWidget ( plotPg );
 			previous->setText ( tr ( "< Numbers" ) );
-			//next->setEnabled ( true );
 			next->setText ( tr ( "Visual >" ) );
 			break;
 
@@ -422,7 +418,7 @@ void Display::doPrev()
 			pages->setCurrentWidget ( visPg );
 			previous->setText ( tr ( "< Plot" ) );
 			next->setEnabled ( true );
-			next->setText ( tr ( "Setting >" ) );
+			next->setText ( tr ( "Settings >" ) );
 			break;
 	}
 }
